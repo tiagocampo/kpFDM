@@ -683,8 +683,8 @@ class ZBHamilton(ZincBlend):
           va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=1, maxiter=400)
           
         if params['model'] == 'ZB6x6':
-          #va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
-          va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=True,tol=1e-5,verbosityLevel=0, maxiter=400)
+          va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LM')
+          #va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=True,tol=1e-5,verbosityLevel=0, maxiter=400)
  
         if params['model'] == 'ZB8x8':
           print 'Not implemented yet'
