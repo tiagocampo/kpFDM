@@ -1,12 +1,17 @@
 import numpy as np
-from scipy import linalg
-from scipy.sparse.linalg import eigsh, lobpcg
+from scipy import rand, linalg
+from scipy.sparse.linalg import eigsh, lobpcg, eigs, spilu
+from scipy.sparse import lil_matrix, diags, block_diag, csr_matrix
 #from scipy.sparse.linalg.eigen.arpack import eigsh
 import matplotlib.pyplot as plt
 import argparse
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
+#from pyamg import smoothed_aggregation_solver
+
+
+# change bsr to csr (I think its more appropriated)
 
 class UniversalConst(object):
 
@@ -56,22 +61,22 @@ class Potential(object):
       
       if params['dimen'] == 1:
         if params['model'] == 'ZB2x2':
-            self.pot = np.zeros(len(params['x']))
+            self.pot = np.zeros(params['N'])
         if params['model'] == 'ZB6x6':
-            self.pot = np.zeros(3*len(params['x'])).reshape((3,len(params['x'])))
+            self.pot = np.zeros(3*params['N']).reshape((3,params['N']))
       
       if params['dimen'] == 2:
         if params['model'] == 'ZB2x2':
-            self.pot = np.zeros(len(params['x'])**2).reshape(len(params['x']),len(params['x']))
+            self.pot = np.zeros(params['N']**2).reshape(params['N'],params['N'])
         if params['model'] == 'ZB6x6':
-            self.pot = np.zeros(3*len(params['x'])**2).reshape((3,len(params['x']),len(params['x'])))
+            self.pot = np.zeros(3*params['N']**2).reshape((3,params['N'],params['N']))
 
     def buildPot(self, params, flag):
       """
       """
       drawFunc = DrawingFunctions()
-      
-      
+
+
       if params['potType'] == 'square':
 
           if params['model'] == 'ZB2x2':
@@ -86,11 +91,10 @@ class Potential(object):
                     value = params['elecmassParam'][i]
 
                   self.pot = drawFunc.square(params, self.pot, value, i) 
-          
+                           
           if params['model'] == 'ZB6x6':
 
               value = {}
-              value[2] = 0
 
               for i in range(params['nmat']):
                   #print 'constructing layer %d potential from %d(%f) to %d(%f)'%(i,params['startPos'][i],params['x'][params['startPos'][i]],
@@ -342,7 +346,7 @@ class IO(object):
             self.parameters['x'] = np.linspace(self.parameters['startPos'][0],self.parameters['endPos'][0],self.parameters['N'])
             self.parameters['x'] /= self.const.A0
         else:
-            print 'Not implemented yet'
+            print 'Not implemented yet x'
 
         self.parameters['elecmassParam'] = [self.const.eVAA2/x for x in self.parameters['elecmass']]
 
@@ -356,7 +360,7 @@ class IO(object):
                 startPos[i] = abs((self.parameters['startPos'][0]-self.parameters['startPos'][i])*self.parameters['N']/(self.parameters['endPos'][0]-self.parameters['startPos'][0]))
                 endPos[i] = startPos[0]+abs(self.parameters['endPos'][0]+self.parameters['endPos'][i])*self.parameters['N']/(self.parameters['endPos'][0]-self.parameters['startPos'][0])
         else:
-            print 'Not implemented yet'
+            print 'Not implemented yet dimen'
 
         self.parameters['startPos'] = [int(x) for x in startPos]
         self.parameters['endPos'] = [int(x) for x in endPos]
@@ -373,11 +377,16 @@ class ZincBlend(object):
       
       self.UniConst = UniversalConst()
       self.symmetry = 'cubic'
+      self.N = int(params['N'])
+
 
       if params['dimen'] == 1:
-          self.directbasis = np.array([params['latpar']/self.UniConst.A0, params['latpar']/self.UniConst.A0, (params['N']-1)*params['step']/self.UniConst.A0])
+        self.directbasis = np.array([params['latpar']/self.UniConst.A0, params['latpar']/self.UniConst.A0, (params['N']-1)*params['step']/self.UniConst.A0])
       else:
-          print 'Not implemented yet'
+        if params['dimen'] == 2:
+          self.directbasis = np.array([(params['N']-1)*params['step']/self.UniConst.A0, (params['N']-1)*params['step']/self.UniConst.A0, params['latpar']/self.UniConst.A0])
+        else:
+            print 'Not implemented yet basis'
 
       # set Bravais basis in reciprocal space
       self.reciprocalbasis = 2.*np.pi/self.directbasis
@@ -390,8 +399,13 @@ class ZincBlend(object):
             kylim = self.reciprocalbasis[1]*params['percentage']/100
             self.kmesh = np.linspace(0,kylim,params['npoints'])
       else:
-          print 'Not implemented yet'
-
+        if params['dimen'] == 2:
+          if params['direction'] == 'kz':
+              kxlim = self.reciprocalbasis[2]*params['percentage']/100
+              self.kmesh = np.linspace(0,kxlim,params['npoints'])
+        else:
+            print 'Not implemented yet mesh'
+  
 
 class ZBHamilton(ZincBlend):
 
@@ -413,37 +427,70 @@ class ZBHamilton(ZincBlend):
       kz = kpoints[2]
       
       
-      HT = []
-      
       if params['model'] == 'ZB2x2':
 
         if params['dimen'] == 1:
       
-          A = np.diagflat(self.Kin)
+          HT = csr_matrix((self.N,self.N), dtype=np.float64)
+          
+          A = diags(self.Kin,0)
+          
           ksquare = kx**2 + ky**2
           
           # derivatives related terms
-          
           nonlocal_diag = np.convolve(self.Kin,[1,2,1],'same')
           nonlocal_off = np.convolve(self.Kin,[1,1],'valid')
           
-          nonlocal = (1./(2.*params['step']**2))*(np.diagflat(nonlocal_diag) - np.diagflat(nonlocal_off,1) - np.diagflat(nonlocal_off,-1))
+          nonlocal = (1./(2.*params['step']**2))*(diags(nonlocal_diag,0) - diags(nonlocal_off,1) - diags(nonlocal_off,-1))
           
-          HT = A*ksquare + nonlocal + np.diagflat(self.potHet)
+          HT = A*ksquare + nonlocal + diags(self.potHet,0)
+          
+          del nonlocal_diag
+          del nonlocal_off
+          del nonlocal
+          del A
 
         if params['dimen'] == 2:
       
-          A = np.diagflat(self.Kin)
+          diag = np.zeros((self.N-2)**2)
+          offdiag1 = np.zeros((self.N-2)**2)
+          diag2 = np.zeros((self.N-2)**2-self.N+2)
+          #offdiag2 = np.zeros((self.N)**2-self.N)
+      
+          #B_off_aux = np.zeros(self.N)
+          #C_off_aux = np.zeros(self.N)
+      
+          HT = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
+                
           ksquare = kz**2
           
-          # derivatives related terms
+          for i in range(1,self.N-1):
+            
+            #print i
+            
+            diag[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*params['step']**2))*4.*self.Kin[1:self.N-1,i-1] +\
+                                          (1./(2.*params['step']**2))*np.convolve(self.Kin[:,i-1],[1,0,1],'valid') +\
+                                          (1./(2.*params['step']**2))*np.convolve(self.Kin[i-1,:],[1,0,1],'valid') +\
+                                          self.Kin[1:self.N-1,i-1]*ksquare +\
+                                          self.potHet[1:self.N-1,i-1]    
+                                                                                      
+            offdiag1[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*params['step']**2))*np.convolve(self.Kin[:,i-1],[1,1],'same')[1:self.N-1]
+                                          
+            if i < self.N-2:
+              diag2[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*params['step']**2))*np.convolve(self.Kin[i-1,:],[1,1],'same')[1:self.N-1]
+              
           
-          nonlocal_diag = np.convolve(self.Kin,[1,2,1],'same')
-          nonlocal_off = np.convolve(self.Kin,[1,1],'valid')
           
-          nonlocal = (1./(2.*params['step']**2))*(np.diagflat(nonlocal_diag) - np.diagflat(nonlocal_off,1) - np.diagflat(nonlocal_off,-1))
+          HT.setdiag(diag,0)
+          HT.setdiag(-offdiag1,1)
+          HT.setdiag(-offdiag1,-1)
           
-          HT = local + nonlocal + np.diagflat(self.potHet)
+          HT.setdiag(-diag2,self.N)
+          HT.setdiag(-diag2,-self.N)
+          
+          
+          #print 'HT is hermitian? ',np.allclose(HT.conjugate(), HT)
+          #np.savetxt('HT.dat',HT.todense())
   
       if params['model'] == 'ZB6x6':
         
@@ -456,15 +503,15 @@ class ZBHamilton(ZincBlend):
                    np.diagflat(self.potHet[1,:]), np.diagflat(self.potHet[0,:]),
                    np.diagflat(self.potHet[2,:]), np.diagflat(self.potHet[2,:]))
         
-        nonlocal_diag = -np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,2,1],'same')
-        nonlocal_off = -np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,1],'valid')
-        nonlocal = (1./(2.*params['step']**2))*(np.diagflat(nonlocal_diag) - np.diagflat(nonlocal_off,1) - np.diagflat(nonlocal_off,-1))
+        nonlocal_diag = np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,2,1],'same')
+        nonlocal_off = np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,1],'valid')
+        nonlocal = (1./(2.*params['step']**2))*(np.diagflat(nonlocal_diag) + np.diagflat(nonlocal_off,1) + np.diagflat(nonlocal_off,-1))
       
         Q = -(gamma1+gamma2)*kx**2 - (gamma1+gamma2)*ky**2 + nonlocal
         
-        nonlocal_diag = -np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,2,1],'same')
-        nonlocal_off = -np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,1],'valid')
-        nonlocal = (1./(2.*params['step']**2))*(np.diagflat(nonlocal_diag) - np.diagflat(nonlocal_off,1) - np.diagflat(nonlocal_off,-1))
+        nonlocal_diag = np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,2,1],'same')
+        nonlocal_off = np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,1],'valid')
+        nonlocal = (1./(2.*params['step']**2))*(np.diagflat(nonlocal_diag) + np.diagflat(nonlocal_off,1) + np.diagflat(nonlocal_off,-1))
       
         T = -(gamma1-gamma2)*kx**2 - (gamma1-gamma2)*ky**2 + nonlocal
         
@@ -498,7 +545,7 @@ class ZBHamilton(ZincBlend):
         
         #np.savetxt('pot.dat',POT)
         
-      return HT
+      return HT.tocsr()
 
 
     def solve(self,params):
@@ -506,12 +553,21 @@ class ZBHamilton(ZincBlend):
       """
       
       if params['model'] == 'ZB2x2':
-        va = np.zeros(len(self.kmesh)*int(params['numcb'])).reshape((int(params['numcb']),len(self.kmesh)))
-        ve = np.zeros(len(self.kmesh)*int(params['numcb'])*int(params['N'])).reshape((int(params['N']),int(params['numcb']),len(self.kmesh)))
+        va = np.zeros(int(params['npoints'])*int(params['numcb'])).reshape((int(params['numcb']),int(params['npoints'])))
+      
+        if params['dimen'] == 1:
+          ve = np.zeros(int(params['npoints'])*int(params['numcb'])*int(params['N'])).reshape((int(params['N']),int(params['numcb']),int(params['npoints'])))
+          X = np.zeros(int(params['numcb'])*int(params['N'])).reshape((int(params['N']),int(params['numcb'])))
+          X = rand(int(params['N']),int(params['numcb']))
+     
+        if params['dimen'] == 2:
+          ve = np.zeros(int(params['npoints'])*int(params['numcb'])*int(params['N']-2)**2).reshape((int(params['N']-2)**2,int(params['numcb']),int(params['npoints'])))
+          X = np.zeros(int(params['numcb'])*int(params['N']-2)**2).reshape((int(params['N']-2)**2,int(params['numcb'])))
+          X = rand(int(params['N']-2)**2,int(params['numcb']))
       
       if params['model'] == 'ZB6x6':
-        va = np.zeros(len(self.kmesh)*int(params['numvb'])).reshape((int(params['numvb']),len(self.kmesh)))
-        ve = np.zeros(len(self.kmesh)*int(params['numvb'])*6*int(params['N'])).reshape((6*int(params['N']),int(params['numvb']),len(self.kmesh)))
+        va = np.zeros(int(params['npoints'])*int(params['numvb'])).reshape((int(params['numvb']),int(params['npoints'])))
+        ve = np.zeros(int(params['npoints'])*int(params['numvb'])*6*int(params['N'])).reshape((6*int(params['N']),int(params['numvb']),int(params['npoints'])))
         #X = np.zeros(int(params['numvb'])*6*int(params['N'])).reshape((6*int(params['N']),int(params['numvb'])))
       
       #cb_va = 'cb_values'+params['direction']+'.txt.gz'
@@ -520,29 +576,29 @@ class ZBHamilton(ZincBlend):
       #np.savetxt(cb_va,header=params['direction']+', cb1, cb2, ... , cb'+str(cbnum))
       #np.savetxt(cb_ve,header=params['direction']+', cb1, cb2, ... , cb'+str(cbnum))
       
-      for i in range(len(self.kmesh)):
+      for i in range(int(params['npoints'])):
         
         if params['direction'] == 'kx':
           kpoints = np.array([self.kmesh[i],0,0])
         if params['direction'] == 'ky':
           kpoints = np.array([0,self.kmesh[i],0])
+        if params['direction'] == 'kz':
+          kpoints = np.array([0,0,self.kmesh[i]])
         
         print "Solving k = ",kpoints 
         
         HT = self.buildHam(params,kpoints)
         
         if params['model'] == 'ZB2x2':
-          va[:,i], ve[:,:,i] = eigsh(HT, int(params['numcb']), which='SM')
-        
+          #va[:,i], ve[:,:,i] = eigsh(HT, int(params['numcb']), which='SM')          
+          va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=1, maxiter=400)
+          
         if params['model'] == 'ZB6x6':
           va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
           #va[:,i], ve[:,:,i] = lobpcg(HT**2, X, M=None, tol=10e-6, largest=True, verbosityLevel=1)
-          
+ 
         if params['model'] == 'ZB8x8':
           print 'Not implemented yet'
-          
-        #va[:,i] = va_aux
-        #ve[:,:,i] = ve_aux
         
       return self.kmesh, va, ve
         
@@ -553,7 +609,7 @@ class ZBHamilton(ZincBlend):
 UniConst = UniversalConst()
 ioObject = IO()
 
-#print ioObject.parameters
+#print ioObject.parameters['N']
 
 
 # Building potential
@@ -561,32 +617,77 @@ P = Potential(ioObject.parameters)
 pothet = P.buildPot(ioObject.parameters,'het')
 
 # Building effective mass variation
-#K = Potential(ioObject.parameters)
-#kin = K.buildPot(ioObject.parameters,'kin')
+K = Potential(ioObject.parameters)
+kin = K.buildPot(ioObject.parameters,'kin')
 
 P.plotPot(ioObject.parameters)
 #K.plotPot(ioObject.parameters)
 
-"""
+
 # Set parameters to Hamiltonian
 ZB = ZBHamilton(ioObject.parameters, pothet, kin)
 
-
 k, va, ve = ZB.solve(ioObject.parameters)
 
-#print va
+print va
+
+ve1 = ve.reshape((ioObject.parameters['N']-2,ioObject.parameters['N']-2,ioObject.parameters['numcb'],ioObject.parameters['npoints']))
+
+#print ve1[:,:,0,0]
 
 if ioObject.parameters['model'] == 'ZB2x2':
 
+  #fig = plt.figure()
+  #for i in range(ioObject.parameters['numcb']):
+  #  plt.plot(k, va[i,:])
+  #plt.show()
+
   fig = plt.figure()
-  for i in range(ioObject.parameters['numcb']):
-    plt.plot(k, np.sqrt(va[i,:]))
+  ax = fig.gca(projection='3d')
+  X, Y = np.meshgrid(ioObject.parameters['x'][1:ioObject.parameters['N']-1]*UniConst.A0, ioObject.parameters['x'][1:ioObject.parameters['N']-1]*UniConst.A0)
+  surf = ax.plot_surface(X, Y, ve1[:,:,0,0]**2 , rstride=1, cstride=1, cmap=cm.coolwarm,
+          linewidth=0, antialiased=False)
+  
+  ax.zaxis.set_major_locator(LinearLocator(10))
+  ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+  
+  fig.colorbar(surf, shrink=0.5, aspect=5)
+    
   plt.show()
+  
+  fig = plt.figure()
+  ax = fig.gca(projection='3d')
+  
+  surf = ax.plot_surface(X, Y, ve1[:,:,1,0]**2 , rstride=1, cstride=1, cmap=cm.coolwarm,
+          linewidth=0, antialiased=False)
+  
+  ax.zaxis.set_major_locator(LinearLocator(10))
+  ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+  
+  fig.colorbar(surf, shrink=0.5, aspect=5)
+    
+  plt.show()
+
+  fig = plt.figure()
+  ax = fig.gca(projection='3d')
+
+  surf = ax.plot_surface(X, Y, ve1[:,:,2,0]**2 , rstride=1, cstride=1, cmap=cm.coolwarm,
+          linewidth=0, antialiased=False)
+  
+  ax.zaxis.set_major_locator(LinearLocator(10))
+  ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+  
+  fig.colorbar(surf, shrink=0.5, aspect=5)
+    
+  plt.show()
+
+
 
 if ioObject.parameters['model'] == 'ZB6x6':
 
   fig = plt.figure()
   for i in range(ioObject.parameters['numvb']):
-    plt.plot(k, np.sqrt(va[i,:]))
+    plt.plot(k, va[i,:])
   plt.show()
-"""
+  
+
