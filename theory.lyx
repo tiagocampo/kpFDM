@@ -1321,7 +1321,7 @@ Calling
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-\text{diag}=\left[A(x_{n},y_{n+1})+A(x_{n+1},y_{n})-4A\left(x_{n},y_{n}\right)+A(x_{n-1},y_{n})+A(x_{n},y_{n-1})\right]
+\text{diag}=-\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n-1},y_{n}\right)+4A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]
 \end{equation}
 
 \end_inset
@@ -1332,8 +1332,8 @@ Calling
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\text{off\_x} & = & \left[A\left(x_{n},y_{n}\right)-A(x_{n-1},y_{n})\right]\nonumber \\
- & \approx & \left[A\left(x_{n},y_{n}\right)-A(x_{n+1},y_{n})\right]
+\text{off\_x} & = & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ & \approx & \left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]
 \end{eqnarray}
 
 \end_inset
@@ -1344,8 +1344,8 @@ Calling
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\text{off\_y} & = & \left[A\left(x_{n},y_{n}\right)-A(x_{n},y_{n-1})\right]\nonumber \\
- & \approx & \left[A\left(x_{n},y_{n}\right)-A(x_{n},y_{n+1})\right]
+\text{off\_y} & = & \left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ & \approx & \left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]
 \end{eqnarray}
 
 \end_inset
