@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from scipy import rand
 from scipy.sparse.linalg import eigsh, lobpcg
@@ -9,9 +10,6 @@ from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 #from pyamg import smoothed_aggregation_solver
 
-
-# change bsr to csr (I think its more appropriated)
-
 class UniversalConst(object):
 
     def __init__(self):
@@ -20,6 +18,10 @@ class UniversalConst(object):
         self.RY = 13.6
         self.A0 = 0.529167
         self.eVAA2 = 3.67744
+        self.planck = 6.58211928e-16 # ev*s
+        self.m0 = 0.510998910e+6 #ev/c^2
+        self.c = 299792458e+10 # AA/s
+        self.hsqrtO2m0 = (self.c**2)*(self.planck**2) / (2.*self.m0)
 
 class DrawingFunctions(object):
 
@@ -125,11 +127,11 @@ class Potential(object):
       
       if params['model'] == 'ZB2x2':
         if params['dimen'] == 1:
-          plt.plot(params['x']*UniConst.A0,self.pot)
+          plt.plot(params['x']*params['L'],self.pot)
           plt.show()
         if params['dimen'] == 2:
           ax = fig.gca(projection='3d')
-          X, Y = np.meshgrid(params['x']*UniConst.A0, params['x']*UniConst.A0)
+          X, Y = np.meshgrid(params['x']*params['L'], params['x']*params['L'])
           surf = ax.plot_surface(X, Y, self.pot, rstride=1, cstride=1, cmap=cm.coolwarm,
                   linewidth=0, antialiased=False)
           
@@ -140,9 +142,9 @@ class Potential(object):
           
           plt.show()
       if params['model'] == 'ZB6x6':
-        plt.plot(params['x']*UniConst.A0,self.pot[0,:])
-        plt.plot(params['x']*UniConst.A0,self.pot[1,:])
-        plt.plot(params['x']*UniConst.A0,self.pot[2,:])
+        plt.plot(params['x']*params['L'],self.pot[0,:])
+        plt.plot(params['x']*params['L'],self.pot[1,:])
+        plt.plot(params['x']*params['L'],self.pot[2,:])
         plt.show()
 
 class IO(object):
@@ -202,7 +204,7 @@ class IO(object):
                                   """)
 
         self.parser.add_argument('-st','--STEP',action='store',dest='step',type=float, help="""
-                                 Discretization step, usually values like: 0.5, 0.25, ...
+                                 Discretization step in Angstrom
                                 """)
 
         self.parser.add_argument('-dr','--DIRECTION',action='store',dest='direction',type=str, help="""
@@ -339,15 +341,19 @@ class IO(object):
 
         # Secondary parameters
 
-        self.parameters['N'] = (self.parameters['endPos'][0]-self.parameters['startPos'][0]+1)/self.parameters['step']
+        self.parameters['L'] = self.parameters['endPos'][0] - self.parameters['startPos'][0]
+        self.parameters['Enorm'] = self.const.hsqrtO2m0/(self.parameters['L']**2)
+        
+        if (self.parameters['endPos'][0]-self.parameters['startPos'][0])%self.parameters['step'] != 0:
+          sys.exit("Discretization interval isnt divisible by total size, try another")
+        else:  
+          self.parameters['N'] = (self.parameters['endPos'][0]-self.parameters['startPos'][0])/self.parameters['step'] 
 
         if self.parameters['dimen'] in [1, 2]:
             self.parameters['x'] = np.linspace(self.parameters['startPos'][0],self.parameters['endPos'][0],self.parameters['N'])
-            self.parameters['x'] /= self.const.A0
+            self.parameters['x'] /= self.parameters['L']
         else:
             print 'Not implemented yet x'
-
-        self.parameters['elecmassParam'] = [self.const.eVAA2/x for x in self.parameters['elecmass']]
 
         # Converting startPos and endPos to vector index
 
@@ -356,14 +362,23 @@ class IO(object):
 
         if self.parameters['dimen'] in [1,2]:
             for i in range(self.parameters['nmat']):
-                startPos[i] = abs((self.parameters['startPos'][0]-self.parameters['startPos'][i])*self.parameters['N']/(self.parameters['endPos'][0]-self.parameters['startPos'][0]))
-                endPos[i] = startPos[0]+abs(self.parameters['endPos'][0]+self.parameters['endPos'][i])*self.parameters['N']/(self.parameters['endPos'][0]-self.parameters['startPos'][0])
+              startPos[i] = abs(self.parameters['startPos'][0]-self.parameters['startPos'][i])/self.parameters['step']
+              endPos[i] = startPos[0] + (self.parameters['endPos'][0]+self.parameters['endPos'][i])/self.parameters['step']
         else:
             print 'Not implemented yet dimen'
 
         self.parameters['startPos'] = [int(x) for x in startPos]
         self.parameters['endPos'] = [int(x) for x in endPos]
-
+        
+        # dimensionalization
+        
+        self.parameters['step'] /= self.parameters['L']
+        self.parameters['gap'] = [x/self.parameters['Enorm'] for x in self.parameters['gap']]
+        if self.args.model in ['ZB2x2']:
+          self.parameters['elecmassParam'] = [1./x for x in self.parameters['elecmass']]
+        if self.args.model in ['ZB6x6']:
+          self.parameters['deltaSO'] = [x/self.parameters['Enorm'] for x in self.parameters['deltaSO']]
+        
         return self.parameters
 
 
@@ -380,10 +395,10 @@ class ZincBlend(object):
 
 
       if params['dimen'] == 1:
-        self.directbasis = np.array([params['latpar']/self.UniConst.A0, params['latpar']/self.UniConst.A0, (params['N']-1)*params['step']/self.UniConst.A0])
+        self.directbasis = np.array([params['latpar']/params['L'], params['latpar']/params['L'], 1. ])
       else:
         if params['dimen'] == 2:
-          self.directbasis = np.array([(params['N']-1)*params['step']/self.UniConst.A0, (params['N']-1)*params['step']/self.UniConst.A0, params['latpar']/self.UniConst.A0])
+          self.directbasis = np.array([ 1., 1., params['latpar']/params['L']])
         else:
             print 'Not implemented yet basis'
 
@@ -415,7 +430,7 @@ class ZBHamilton(ZincBlend):
       ZincBlend.__init__(self,params)
       self.potHet = potHet
       self.Kin = Kin
-         
+      self.step = params['step']
       
     def buildHam(self, params, kpoints):
       """
@@ -440,7 +455,7 @@ class ZBHamilton(ZincBlend):
           nonlocal_diag = np.convolve(self.Kin,[1,2,1],'same')
           nonlocal_off = np.convolve(self.Kin,[1,1],'valid')
           
-          nonlocal = (1./(2.*params['step']**2))*(diags(nonlocal_diag,0) - diags(nonlocal_off,1) - diags(nonlocal_off,-1))
+          nonlocal = (1./(2.*self.step**2))*(diags(nonlocal_diag,0) - diags(nonlocal_off,1) - diags(nonlocal_off,-1))
           
           HT = A*ksquare + nonlocal + diags(self.potHet,0)
           
@@ -463,16 +478,16 @@ class ZBHamilton(ZincBlend):
             
             #print i
             
-            diag[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*params['step']**2))*4.*self.Kin[1:self.N-1,i-1] +\
-                                          (1./(2.*params['step']**2))*np.convolve(self.Kin[:,i-1],[1,0,1],'valid') +\
-                                          (1./(2.*params['step']**2))*np.convolve(self.Kin[i-1,:],[1,0,1],'valid') +\
+            diag[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*self.step**2))*4.*self.Kin[1:self.N-1,i-1] +\
+                                          (1./(2.*self.step**2))*np.convolve(self.Kin[:,i-1],[1,0,1],'valid') +\
+                                          (1./(2.*self.step**2))*np.convolve(self.Kin[i-1,:],[1,0,1],'valid') +\
                                           self.Kin[1:self.N-1,i-1]*ksquare +\
                                           self.potHet[1:self.N-1,i-1]    
                                                                                       
-            offdiag1[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*params['step']**2))*np.convolve(self.Kin[:,i-1],[1,1],'same')[1:self.N-1]
+            offdiag1[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*self.step**2))*np.convolve(self.Kin[:,i-1],[1,1],'same')[1:self.N-1]
                                           
             if i < self.N-2:
-              diag2[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*params['step']**2))*np.convolve(self.Kin[i-1,:],[1,1],'same')[1:self.N-1]
+              diag2[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*self.step**2))*np.convolve(self.Kin[i-1,:],[1,1],'same')[1:self.N-1]
               
           
           
@@ -512,16 +527,10 @@ class ZBHamilton(ZincBlend):
           gamma1.setdiag(self.Kin[0,:],0)
           gamma2.setdiag(self.Kin[1,:],0)
           gamma3.setdiag(self.Kin[2,:],0)
-        
-          """
-          POT = block_diag((diags(self.potHet[0,:],0), diags(self.potHet[1,:],0), 
-                     diags(self.potHet[1,:],0), diags(self.potHet[0,:],0),
-                     diags(self.potHet[2,:],0), diags(self.potHet[2,:],0)),format='lil',dtype=np.float64)
-          """
           
           # Q
-          nonlocal_diag = (1./(2.*params['step']**2))*np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,2,1],'same')
-          nonlocal_off = (1./(2.*params['step']**2))*np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,1],'valid')
+          nonlocal_diag = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,2,1],'same')
+          nonlocal_off = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:]-2.*self.Kin[1,:],[1,1],'valid')
         
           Q.setdiag(nonlocal_diag,0)
           Q.setdiag(-nonlocal_off,1)
@@ -531,8 +540,8 @@ class ZBHamilton(ZincBlend):
           #np.savetxt('Q.dat',Q.todense())
           
           # T
-          nonlocal_diag = (1./(2.*params['step']**2))*np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,2,1],'same')
-          nonlocal_off = (1./(2.*params['step']**2))*np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,1],'valid')
+          nonlocal_diag = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,2,1],'same')
+          nonlocal_off = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:]+2.*self.Kin[1,:],[1,1],'valid')
         
           T.setdiag(nonlocal_diag,0)
           T.setdiag(-nonlocal_off,1)
@@ -542,7 +551,7 @@ class ZBHamilton(ZincBlend):
           #np.savetxt('T.dat',T.todense())
           
           # S
-          nonlocal_off = (1./(4.*params['step']))*np.convolve(self.Kin[2,:],[1,1],'valid')
+          nonlocal_off = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'valid')
         
           S.setdiag(-nonlocal_off,1)
           S.setdiag(nonlocal_off,-1)
@@ -566,69 +575,53 @@ class ZBHamilton(ZincBlend):
           sqr3 = np.sqrt(3.)
           
           HT += kron(Q          ,[[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(S          ,[[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(R          ,[[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(ZERO       ,[[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(IU*rqs2*S  ,[[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*sqr2*R ,[[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(S          ,[[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(R          ,[[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(ZERO       ,[[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(IU*rqs2*S  ,[[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*sqr2*R ,[[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           
-          HT += kron(SC             ,[[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(SC             ,[[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           HT += kron(T              ,[[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(R              ,[[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*rqs2*(Q-T) ,[[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(R              ,[[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*rqs2*(Q-T) ,[[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           
-          HT += kron(RC               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(RC               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           HT += kron(T                ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-S               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*rqs2*(Q-T)   ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-S               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*rqs2*(Q-T)   ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           
-          HT += kron(ZERO        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(RC          ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-SC         ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(ZERO        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(RC          ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-SC         ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           HT += kron(Q           ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*sqr2*RC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*sqr2*RC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           
-          HT += kron(-IU*rqs2*SC    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(IU*rqs2*(Q-T)  ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(IU*sqr2*R      ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(.5*(Q+T)       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*rqs2*SC    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(IU*rqs2*(Q-T)  ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(IU*sqr2*R      ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(.5*(Q+T)       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0]], format='lil')
           
-          HT += kron(IU*sqr2*RC       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0]], format='lil')
-          HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0]], format='lil')
-          HT += kron(IU*rqs2*(Q-T)    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0]], format='lil')
-          HT += kron(IU*rqs2*S        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0]], format='lil')
-          HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0]], format='lil')
-          HT += kron(0.5*(Q+T)        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
+          #HT += kron(IU*sqr2*RC       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0]], format='lil')
+          #HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0]], format='lil')
+          #HT += kron(IU*rqs2*(Q-T)    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0]], format='lil')
+          #HT += kron(IU*rqs2*S        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0]], format='lil')
+          #HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0]], format='lil')
+          #HT += kron(0.5*(Q+T)        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
           
           HT += kron(diags(self.potHet[0,:],0) ,[[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           HT += kron(diags(self.potHet[1,:],0) ,[[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           HT += kron(diags(self.potHet[0,:],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
           HT += kron(diags(self.potHet[1,:],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(diags(self.potHet[2,:],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
-          HT += kron(diags(self.potHet[2,:],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
-                    
-          
-          """          
-          HT = bmat([[Q   , S   , R   , None, complex(0,1./np.sqrt(2.))*S    , -complex(0,np.sqrt(2.))*R      ],
-                     [SC  , T   , None, R   , -complex(0,1./np.sqrt(2))*(Q-T), complex(0,np.sqrt(3./2.))*S    ],
-                     [RC  , None, T   , -S  , -complex(0,np.sqrt(3./2.))*SC  , -complex(0,1./np.sqrt(2))*(Q-T)],
-                     [None, RC  , -SC , Q   , -complex(0,np.sqrt(2.))*RC     , -complex(0,1./np.sqrt(2.))*SC  ],
-                     [-complex(0,1./np.sqrt(2.))*SC, complex(0,1./np.sqrt(2))*(Q-T), complex(0,np.sqrt(3./2.))*S,
-                       complex(0,np.sqrt(2.))*R, (1./2.)*(Q+T), None ],
-                     [complex(0,np.sqrt(2.))*RC, -complex(0,np.sqrt(3./2.))*SC, complex(0,1./np.sqrt(2))*(Q-T),
-                      complex(0,1./np.sqrt(2.))*S, None, (1./2.)*(Q+T) ]
-                    ], format='lil')
-          
-          
-          HT += POT
-          """
+          #HT += kron(diags(self.potHet[2,:],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
+          #HT += kron(diags(self.potHet[2,:],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
           
           #np.savetxt('HT.dat',HT.todense())
           #np.savetxt('pot.dat',POT.todense())
@@ -656,8 +649,8 @@ class ZBHamilton(ZincBlend):
       if params['model'] == 'ZB6x6':
         va = np.zeros(int(params['npoints'])*int(params['numvb'])).reshape((int(params['numvb']),int(params['npoints'])))
         ve = np.zeros(int(params['npoints'])*int(params['numvb'])*6*int(params['N'])).reshape((6*int(params['N']),int(params['numvb']),int(params['npoints'])))
-        X = np.zeros(int(params['numvb'])*6*int(params['N'])).reshape((6*int(params['N']),int(params['numvb'])))
-        X = rand(6*int(params['N']),int(params['numvb']))
+        #X = np.zeros(int(params['numvb'])*6*int(params['N'])).reshape((6*int(params['N']),int(params['numvb'])))
+        #X = rand(6*int(params['N']),int(params['numvb']))
       
       #cb_va = 'cb_values'+params['direction']+'.txt.gz'
       #cb_ve = 'cb_vector'+params['direction']+'.txt.gz'
@@ -674,13 +667,13 @@ class ZBHamilton(ZincBlend):
         if params['direction'] == 'kz':
           kpoints = np.array([0,0,self.kmesh[i]])
         
-        print "Solving k = ",kpoints 
+        print "Solving k = ",kpoints/params['L'] 
         
         HT = self.buildHam(params,kpoints)
         
         if params['model'] == 'ZB2x2':
           #va[:,i], ve[:,:,i] = eigsh(HT, int(params['numcb']), which='SM')          
-          va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=1, maxiter=400)
+          va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=0, maxiter=400)
           
         if params['model'] == 'ZB6x6':
           va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LM')
@@ -709,9 +702,9 @@ pothet = P.buildPot(ioObject.parameters,'het')
 K = Potential(ioObject.parameters)
 kin = K.buildPot(ioObject.parameters,'kin')
 
-#P.plotPot(ioObject.parameters)
+P.plotPot(ioObject.parameters)
 #K.plotPot(ioObject.parameters)
-
+#sys.exit()
 
 # Set parameters to Hamiltonian
 ZB = ZBHamilton(ioObject.parameters, pothet, kin)
@@ -719,7 +712,7 @@ ZB = ZBHamilton(ioObject.parameters, pothet, kin)
 k, va, ve = ZB.solve(ioObject.parameters)
 
 
-#print va
+print ioObject.parameters['Enorm']*va
 
 
 #ve1 = ve.reshape((ioObject.parameters['N']-2,ioObject.parameters['N']-2,ioObject.parameters['numcb'],ioObject.parameters['npoints']))
@@ -730,7 +723,7 @@ if ioObject.parameters['model'] == 'ZB2x2':
 
   fig = plt.figure()
   for i in range(ioObject.parameters['numcb']):
-    plt.plot(k, va[i,:])
+    plt.plot(k/ioObject.parameters['L'], ioObject.parameters['Enorm']*va[i,:])
   plt.show()
 
 """
@@ -779,7 +772,7 @@ if ioObject.parameters['model'] == 'ZB6x6':
 
   fig = plt.figure()
   for i in range(ioObject.parameters['numvb']):
-    plt.plot(k, va[i,:])
+    plt.plot(k/ioObject.parameters['L'], ioObject.parameters['Enorm']*va[i,:])
   plt.show()
   
 
