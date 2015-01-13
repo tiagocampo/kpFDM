@@ -657,12 +657,24 @@ class ZBHamilton(ZincBlend):
         diag2T = np.zeros((self.N-2)**2-self.N+2)
         
         S      = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
+        offdiagS = np.zeros((self.N-2)**2)
+        offdiag2S = np.zeros((self.N-2)**2-self.N+2)
         SC     = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
-        R      = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
-        RC     = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
-        ZERO   = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
         
-
+        R      = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
+        diagR     = np.zeros((self.N-2)**2)
+        offdiagR = np.zeros((self.N-2)**2)
+        diag2R = np.zeros((self.N-2)**2-self.N+2)        
+        diagR2     = np.zeros((self.N-2)**2)
+        offdiagR2 = np.zeros((self.N-2)**2)
+        diag2R2 = np.zeros((self.N-2)**2-self.N+2)
+        RC     = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
+        
+        ZERO   = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
+      
+        QpT = lil_matrix(((self.N-2)**2,(self.N-2)**2), dtype=np.float64)
+        diagQpT = np.zeros((self.N-2)**2)
+        
         
         gamma1 = self.Kin[0,:]
         gamma2 = self.Kin[1,:]
@@ -672,76 +684,91 @@ class ZBHamilton(ZincBlend):
         
         for i in range(1,self.N-1):
           
-          # Q
           auxQ = gamma1 - 2.*gamma2
           auxT = gamma1 + 2.*gamma2
           
           diagQ[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*4.*(auxQ[1:self.N-1,i-1])-\
                               (1./(2.*self.step**2))*np.convolve(auxQ[:,i-1],[1,0,1],'valid') -\
                               (1./(2.*self.step**2))*np.convolve(auxQ[i-1,:],[1,0,1],'valid') -\
-                              (gamma1[1:self.N-1,i-1]+gamma2[1:self.N-1,i-1])*ksquare +\
-                              self.potHet[0,1:self.N-1,i-1]
+                              (gamma1[1:self.N-1,i-1]+gamma2[1:self.N-1,i-1])*ksquare
+                              
                               
           diagT[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*4.*(auxT[1:self.N-1,i-1])-\
                               (1./(2.*self.step**2))*np.convolve(auxT[:,i-1],[1,0,1],'valid') -\
                               (1./(2.*self.step**2))*np.convolve(auxT[i-1,:],[1,0,1],'valid') -\
-                              (gamma1[1:self.N-1,i-1]-gamma2[1:self.N-1,i-1])*ksquare +\
-                              self.potHet[1,1:self.N-1,i-1]
-          
-        
+                              (gamma1[1:self.N-1,i-1]-gamma2[1:self.N-1,i-1])*ksquare
+                              
+                              
+          diagQpT = 0.5*(diagQ[(i-1)*(self.N-2):i*(self.N-2)] + diagT[(i-1)*(self.N-2):i*(self.N-2)]) +\
+                    self.potHet[2,1:self.N-1,i-1]
+
+          diagQ[(i-1)*(self.N-2):i*(self.N-2)] += self.potHet[0,1:self.N-1,i-1]
+          diagT[(i-1)*(self.N-2):i*(self.N-2)] += self.potHet[1,1:self.N-1,i-1]
+
+          diagR[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(gamma2[:,i-1],[1,0,1],'valid') +\
+                              (1./(2.*self.step**2))*np.convolve(gamma2[i-1,:],[1,0,1],'valid')
+
+          diagR2[(i-1)*(self.N-2):i*(self.N-2)] = complex(0.,1.)*((1./(self.step**2))*4.*(gamma3[1:self.N-1,i-1]) +\
+                              (1./(self.step**2))*np.convolve(gamma3[:,i-1],[1,0,1],'valid') +\
+                              (1./(self.step**2))*np.convolve(gamma3[i-1,:],[1,0,1],'valid'))
+
+                              
           offdiagQ[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(auxQ[:,i-1],[1,1],'same')[1:self.N-1]
           offdiagT[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(auxT[:,i-1],[1,1],'same')[1:self.N-1]
-
+          offdiagS[(i-1)*(self.N-2):i*(self.N-2)] = (1./(4.*self.step))*np.convolve(gamma3[:,i-1],[1,1],'same')[1:self.N-1]
+          offdiagR[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*self.step**2))*np.convolve(gamma2[:,i-1],[1,1],'same')[1:self.N-1]
+          offdiagR2[(i-1)*(self.N-2):i*(self.N-2)] = complex(0.,-1.)*(1./(self.step**2))*np.convolve(gamma3[i-1,:],[1,1],'same')[1:self.N-1]
 
           if i < self.N-2:
             diag2Q[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(auxQ[i-1,:],[1,1],'same')[1:self.N-1]
             diag2T[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(auxT[i-1,:],[1,1],'same')[1:self.N-1]
-
-
-          #HT += kron(diags(self.potHet[0,1:self.N-1,i-1],0) ,[[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          #HT += kron(diags(self.potHet[1,1:self.N-1,i-1],0) ,[[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          #HT += kron(diags(self.potHet[1,1:self.N-1,i-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          #HT += kron(diags(self.potHet[0,1:self.N-1,i-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-          #HT += kron(diags(self.potHet[2,1:self.N-1,i-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
-          #HT += kron(diags(self.potHet[2,1:self.N-1,i-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
-          
+            offdiag2S[(i-1)*(self.N-2):i*(self.N-2)] = (1./(4.*self.step))*np.convolve(gamma3[i-1,:],[1,1],'same')[1:self.N-1]
+            diag2R[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(gamma2[i-1,:],[1,1],'same')[1:self.N-1]
+            diag2R2[(i-1)*(self.N-2):i*(self.N-2)] = complex(0.,-1.)*(1./(self.step**2))*np.convolve(gamma3[:,i-1],[1,1],'same')[1:self.N-1]
 
         Q.setdiag(diagQ,0)
         Q.setdiag(-offdiagQ,1)
         Q.setdiag(-offdiagQ,-1)
-  
         Q.setdiag(-diag2Q,self.N)
         Q.setdiag(-diag2Q,-self.N)
         
         T.setdiag(diagT,0)
         T.setdiag(-offdiagT,1)
         T.setdiag(-offdiagT,-1)
-  
         T.setdiag(-diag2T,self.N)
         T.setdiag(-diag2T,-self.N)
         
-        """
+        QpT.setdiag(diagQpT,0)
+        QpT.setdiag(-0.5*(offdiagQ+offdiagT),1)
+        QpT.setdiag(-0.5*(offdiagQ+offdiagT),-1)
+        QpT.setdiag(-0.5*(diag2Q+diag2T),self.N)
+        QpT.setdiag(-0.5*(diag2Q+diag2T),-self.N)
         
-        #np.savetxt('T.dat',T.todense())
+        S.setdiag(offdiagS,1)
+        S.setdiag(-offdiagS,-1)
+        S.setdiag(complex(0.,-1.)*offdiag2S,self.N+1)
+        S.setdiag(-complex(0.,-1.)*offdiag2S,-self.N-1)
+        S*=2.*np.sqrt(3.)*kz
         
-        # S
-        nonlocal_off = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'valid')
+        SC.setdiag(-offdiagS,1)
+        SC.setdiag(offdiagS,-1)
+        SC.setdiag(-complex(0.,1.)*offdiag2S,self.N+1)
+        SC.setdiag(complex(0.,1.)*offdiag2S,-self.N-1)
+        SC*=2.*np.sqrt(3.)*kz
         
-        S.setdiag(-nonlocal_off,1)
-        S.setdiag(nonlocal_off,-1)
-        S*=2.*np.sqrt(3.)*complex(kx,ky)
-        SC.setdiag(nonlocal_off,1)
-        SC.setdiag(-nonlocal_off,-1)
-        SC*=2.*np.sqrt(3.)*complex(kx,-ky)
+        R.setdiag(diagR + diagR2, 0)
+        R.setdiag(offdiagR + offdiagR2,1)
+        R.setdiag(offdiagR + offdiagR2,-1)
+        R.setdiag(diag2R + diag2R2,self.N)
+        R.setdiag(diag2R + diag2R2,-self.N)
+        R*=2.*np.sqrt(3.)
         
-        #np.savetxt('S.dat',S.todense())
-        
-        # R
-        R = -2.*np.sqrt(3.)*(gamma2*(kx**2 + ky**2)-complex(0,1.)*gamma3*kx*ky)
-        RC = -2.*np.sqrt(3.)*(gamma2*(kx**2 + ky**2)+complex(0,1.)*gamma3*kx*ky)
-        
-        #np.savetxt('R.dat',R.todense())
-        """
+        RC.setdiag(diagR - diagR2, 0)
+        RC.setdiag(offdiagR - offdiagR2,1)
+        RC.setdiag(offdiagR - offdiagR2,-1)
+        RC.setdiag(-diag2R - diag2R2,self.N)
+        RC.setdiag(-diag2R - diag2R2,-self.N)
+        RC*=2.*np.sqrt(3.)
         
         IU = complex(0,1.)
         sqr2 = np.sqrt(2.)
@@ -749,47 +776,47 @@ class ZBHamilton(ZincBlend):
         sqr3 = np.sqrt(3.)
         
         HT += kron(Q          ,[[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(S          ,[[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(R          ,[[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(ZERO       ,[[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(IU*rqs2*S  ,[[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*sqr2*R ,[[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(S          ,[[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(R          ,[[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(ZERO       ,[[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(IU*rqs2*S  ,[[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*sqr2*R ,[[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         
-        #HT += kron(SC             ,[[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(SC             ,[[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(T              ,[[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(R              ,[[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*rqs2*(Q-T) ,[[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(R              ,[[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*rqs2*(Q-T) ,[[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         
-        #HT += kron(RC               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(RC               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(T                ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-S               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*rqs2*(Q-T)   ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-S               ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*rqs2*(Q-T)   ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         
-        #HT += kron(ZERO        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(RC          ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-SC         ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(ZERO        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(RC          ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-SC         ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(Q           ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*sqr2*RC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*sqr2*RC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         
-        #HT += kron(-IU*rqs2*SC    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(IU*rqs2*(Q-T)  ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(IU*sqr2*R      ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(.5*(Q+T)       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
-        #HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*rqs2*SC    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(IU*rqs2*(Q-T)  ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(IU*sqr3*rqs2*S ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(IU*sqr2*R      ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(QpT            ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
+        HT += kron(ZERO           ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1],[0,0,0,0,0,0]], format='lil')
         
-        #HT += kron(IU*sqr2*RC       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0]], format='lil')
-        #HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0]], format='lil')
-        #HT += kron(IU*rqs2*(Q-T)    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0]], format='lil')
-        #HT += kron(IU*rqs2*S        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0]], format='lil')
-        #HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0]], format='lil')
-        #HT += kron(0.5*(Q+T)        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
-        
+        HT += kron(IU*sqr2*RC       ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,0,0,0,0,0]], format='lil')
+        HT += kron(-IU*sqr3*rqs2*SC ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,1,0,0,0,0]], format='lil')
+        HT += kron(IU*rqs2*(Q-T)    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0]], format='lil')
+        HT += kron(IU*rqs2*S        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0]], format='lil')
+        HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0]], format='lil')
+        HT += kron(QpT              ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
+
       return HT.tocsr()
       
     def buildHam(self, params, kpoints):
