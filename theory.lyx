@@ -74,7 +74,7 @@
 \begin_body
 
 \begin_layout Title
-Envelope function approximation - Finite Elements method
+Envelope function approximation - Finite Differences method
 \end_layout
 
 \begin_layout Author
@@ -85,11 +85,16 @@ Tiago de Campos
 tiagocampo@gmail.com
 \end_layout
 
-\begin_layout Section
-Definitions
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Section
 Hamiltonian
 \end_layout
 
@@ -122,23 +127,31 @@ where
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-K^{\alpha^{\prime}\alpha}\left(\vec{R}\right)=\frac{1}{2m_{0}}\left[\vec{P}^{\alpha^{\prime}\alpha}\cdot\vec{P}+\vec{P}\cdot\vec{P}^{\alpha^{\prime}\alpha}\right]+\sum_{i,j}^{x,y,z}P_{i}\gamma_{ij}^{\alpha^{\prime}\alpha}\left(\vec{R}\right)P_{j}
+K^{\alpha^{\prime}\alpha}\left(\vec{R}\right)=\frac{1}{2m_{0}}\left[\vec{P}^{\alpha^{\prime}\alpha}\cdot\vec{P}+\vec{P}\cdot\vec{P}^{\alpha^{\prime}\alpha}\right]+\sum_{i,j}^{x,y,z}P_{i}\gamma_{ij}^{\alpha^{\prime}\alpha}\left(\vec{R}\right)P_{j}\label{eq:kinetic}
 \end{equation}
 
 \end_inset
 
 
+\begin_inset Newline newline
+\end_inset
+
+is the kinetic term
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
-\[
+\begin{equation}
 \vec{P}^{\alpha^{\prime}\alpha}=\left\langle \alpha^{\prime}\left|\vec{P}\right|\alpha\right\rangle 
-\]
+\end{equation}
 
 \end_inset
 
 
+\begin_inset Newline newline
+\end_inset
+
+is the optical matrix element
 \end_layout
 
 \begin_layout Standard
@@ -150,6 +163,10 @@ K^{\alpha^{\prime}\alpha}\left(\vec{R}\right)=\frac{1}{2m_{0}}\left[\vec{P}^{\al
 \end_inset
 
 
+\begin_inset Newline newline
+\end_inset
+
+is the effective mass tensor 
 \end_layout
 
 \begin_layout Standard
@@ -164,7 +181,8 @@ K^{\alpha^{\prime}\alpha}\left(\vec{R}\right)=\frac{1}{2m_{0}}\left[\vec{P}^{\al
 \begin_inset Newline newline
 \end_inset
 
-and finally
+is the correction to the free electron mass due to remote band contributions,
+ and, finally
 \end_layout
 
 \begin_layout Standard
@@ -187,6 +205,10 @@ h_{SO}^{\alpha^{\prime}\alpha}\left(\vec{R}\right)=\left\langle \alpha^{\prime}\
 \end_inset
 
 
+\begin_inset Newline newline
+\end_inset
+
+is the potential.
 \end_layout
 
 \begin_layout Standard
@@ -246,7 +268,7 @@ To solve systems with periodic boundarie conditions, such as super-lattices,
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-f_{\alpha\vec{k}}\left(\vec{r}\right)=e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)
+f_{\alpha\vec{k}}\left(\vec{r}\right)=e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\label{eq:envFunc}
 \end{equation}
 
 \end_inset
@@ -277,775 +299,11 @@ reference "eq:envHam"
 \end_layout
 
 \begin_layout Subsection
-One band model withou spin-orbit
+k.p matrices - ZB
 \end_layout
 
 \begin_layout Standard
-\begin_inset Formula $\phantom{}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-In this model, the potential is writen as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-V\left(\vec{r}\right)=E_{0}\left(\vec{r}\right)
-\end{equation}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-and the kinetic term
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-K\left(\vec{r}\right)=\sum_{i,j}^{x,y,z}p_{i}\gamma_{ij}\left(\vec{r}\right)p_{j}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Substituting the above terms into equation (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:hamiltonian"
-
-\end_inset
-
-), we get
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\left[\sum_{i,j}^{x,y,z}p_{i}\gamma_{ij}\left(\vec{r}\right)p_{j}+E_{0}\left(\vec{r}\right)\right]\, e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)=E\left(\vec{k}\right)\, e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Expanding the terms, assuming that 
-\begin_inset Formula $p_{l}\rightarrow-i\hbar\partial_{l}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\hbar^{2}\partial_{i}\gamma_{ij}\left(\vec{r}\right)\partial_{j}\left[e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)\right] & = & \hbar^{2}\left\{ \partial_{i}\gamma_{ij}\left(\vec{r}\right)\left[ik_{j}e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{j}g\left(\vec{r}\right)\right]\right\} \nonumber \\
- & = & \hbar^{2}\left\{ \left[\partial_{i}\gamma_{ij}\left(\vec{r}\right)\right]\left[ik_{j}e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{j}g\left(\vec{r}\right)\right]+\gamma_{ij}\left(\vec{r}\right)\partial_{i}\left[ik_{j}e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{j}g\left(\vec{r}\right)\right]\right\} \nonumber \\
- & = & \hbar^{2}\left\{ \left[\partial_{i}\gamma_{ij}\left(\vec{r}\right)\right]\left[ik_{j}e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{j}g\left(\vec{r}\right)\right]\right.\nonumber \\
- &  & \left.+\gamma_{ij}\left(\vec{r}\right)\left[-k_{j}k_{i}e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)+ik_{j}e^{i\vec{k}\cdot\vec{r}}\partial_{i}g\left(\vec{r}\right)+ik_{i}e^{i\vec{k}\cdot\vec{r}}\partial_{j}g\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{i}\partial_{j}g\left(\vec{r}\right)\right]\right\} \nonumber \\
- & = & \hbar^{2}\left\{ i\partial_{i}\gamma_{ij}\left(\vec{r}\right)k_{j}+\partial_{i}\gamma_{ij}\left(\vec{r}\right)\partial_{j}-\gamma_{ij}\left(\vec{r}\right)k_{j}k_{i}+i\gamma_{ij}\left(\vec{r}\right)k_{j}\partial_{i}+i\gamma_{ij}\left(\vec{r}\right)k_{i}\partial_{j}+\gamma_{ij}\left(\vec{r}\right)\partial_{i}\partial_{j}\right\} e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)\label{eq:effmas_derivative}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Lets rename equation (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:effmas_derivative"
-
-\end_inset
-
-) to
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\nabla_{\gamma,ij}\left(\vec{r}\right)=\hbar^{2}\left\{ i\partial_{i}\gamma_{ij}\left(\vec{r}\right)k_{j}+\partial_{i}\gamma_{ij}\left(\vec{r}\right)\partial_{j}-\gamma_{ij}\left(\vec{r}\right)k_{j}k_{i}+i\gamma_{ij}\left(\vec{r}\right)k_{j}\partial_{i}+i\gamma_{ij}\left(\vec{r}\right)k_{i}\partial_{j}+\gamma_{ij}\left(\vec{r}\right)\partial_{i}\partial_{j}\right\} 
-\end{equation}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-but, to ensure hermiticity
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\nabla_{\gamma,ij}\left(\vec{r}\right)=\hbar^{2}\left\{ \partial_{i}\gamma_{ij}\left(\vec{r}\right)\partial_{j}-\gamma_{ij}\left(\vec{r}\right)k_{j}k_{i}+\gamma_{ij}\left(\vec{r}\right)\partial_{i}\partial_{j}\right\} 
-\end{equation}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-then
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\hbar^{2}\partial_{i}\gamma_{ij}\left(\vec{r}\right)\partial_{j}\left[e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)\right]=\nabla_{\gamma,ij}\left(\vec{r}\right)e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Finally,
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\sum_{i,j}^{x,y,z}\nabla_{\gamma,ij}\left(\vec{r}\right)e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)+E_{0}\left(\vec{r}\right)e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right) & = & E\, e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)\nonumber \\
-\left\{ \sum_{i,j}^{x,y,z}\nabla_{\gamma,ij}\left(\vec{r}\right)+E_{0}\left(\vec{r}\right)\right\} e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right) & = & E\, e^{i\vec{k}\cdot\vec{r}}g\left(\vec{r}\right)\nonumber \\
-\left\{ \sum_{i,j}^{x,y,z}\nabla_{\gamma,ij}\left(\vec{r}\right)+E_{0}\left(\vec{r}\right)\right\} g\left(\vec{r}\right) & = & E\, g\left(\vec{r}\right)\label{eq:oneBandEnveHam}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Degenerate bands with spin-orbit
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\phantom{}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Re-writting equation (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:hamiltonian"
-
-\end_inset
-
-) with the standard basis set (Rolf, page 206)
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\left\{ \sum_{\alpha}\delta_{\alpha^{\prime}\alpha}E_{0}^{\alpha}\left(\vec{R}\right)+\left[\begin{array}{cccccc}
-Q & S & R & 0 & \frac{i}{\sqrt{2}}S & -i\sqrt{2}R\\
-S^{\dagger} & T & 0 & R & -\frac{i}{\sqrt{2}}\left(Q-T\right) & i\sqrt{\frac{3}{2}}S\\
-R^{\dagger} & 0 & T & -S & -i\sqrt{\frac{3}{2}}S^{\dagger} & -\frac{i}{\sqrt{2}}\left(Q-T\right)\\
-0 & R^{\dagger} & -S^{\dagger} & Q & -i\sqrt{2}R^{\dagger} & -\frac{i}{\sqrt{2}}S^{\dagger}\\
--\frac{i}{\sqrt{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & i\sqrt{\frac{3}{2}}S & i\sqrt{2}R & \frac{1}{2}\left(Q+T\right)-\Delta_{SO} & 0\\
-i\sqrt{2}R^{\dagger} & -i\sqrt{\frac{3}{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & \frac{i}{\sqrt{2}}S & 0 & \frac{1}{2}\left(Q+T\right)-\Delta_{SO}
-\end{array}\right]\right\} \, e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)=E\, e^{i\vec{k}\cdot\vec{r}}g_{\alpha^{\prime}}\left(\vec{r}\right)
-\end{equation}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-with terms given by
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-Q & = & -\left(\gamma_{1}+\gamma_{2}\right)\frac{p_{x}^{2}}{\hbar^{2}}-\left(\gamma_{1}+\gamma_{2}\right)\frac{p_{y}^{2}}{\hbar^{2}}-\left(\gamma_{1}-2\gamma_{2}\right)\frac{p_{z}^{2}}{\hbar^{2}}\nonumber \\
-T & = & -\left(\gamma_{1}-\gamma_{2}\right)\frac{p_{x}^{2}}{\hbar^{2}}-\left(\gamma_{1}-\gamma_{2}\right)\frac{p_{y}^{2}}{\hbar^{2}}-\left(\gamma_{1}+2\gamma_{2}\right)\frac{p_{z}^{2}}{\hbar^{2}}\nonumber \\
-S & = & i\sqrt{3}\left[\gamma_{3}\left(p_{x}-ip_{y}\right)\frac{p_{z}}{\hbar^{2}}\right]\nonumber \\
-R & = & -\sqrt{3}\left[\gamma_{2}\frac{\left(p_{x}^{2}-p_{y}^{2}\right)}{\hbar^{2}}-i\gamma_{3}\frac{p_{x}p_{y}}{\hbar^{2}}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-with
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-p_{l}\left[e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\right] & = & \left(-i\hbar\partial_{l}\right)\left[e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -i\hbar\left[ik_{l}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{l}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & e^{i\vec{k}\cdot\vec{r}}\left[k_{l}-i\hbar\partial_{l}\right]g_{\alpha}\left(\vec{r}\right)
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-p_{l}^{2}\left[e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\right] & = & \left(-i\hbar\partial_{l}\right)\left(-i\hbar\partial_{l}\right)\left[e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -\hbar^{2}\left(\partial_{l}\right)\left[ik_{l}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{l}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -\hbar^{2}\left[-k_{l}^{2}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+ik_{l}e^{i\vec{k}\cdot\vec{r}}\partial_{l}g_{\alpha}\left(\vec{r}\right)+ik_{l}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{l}^{2}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -\hbar^{2}e^{i\vec{k}\cdot\vec{r}}\left[-k_{l}^{2}+ik_{l}\partial_{l}+ik_{l}+\partial_{l}^{2}\right]g_{\alpha}\left(\vec{r}\right)
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-p_{l}p_{m}\left[e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\right] & = & \left(-i\hbar\partial_{l}\right)\left(-i\hbar\partial_{m}\right)\left[e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -\hbar^{2}\left(\partial_{l}\right)\left[ik_{m}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{m}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -\hbar^{2}\left[-k_{m}k_{l}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+ik_{m}e^{i\vec{k}\cdot\vec{r}}\partial_{l}g_{\alpha}\left(\vec{r}\right)+ik_{l}e^{i\vec{k}\cdot\vec{r}}g_{\alpha}\left(\vec{r}\right)+e^{i\vec{k}\cdot\vec{r}}\partial_{l}\partial_{m}g_{\alpha}\left(\vec{r}\right)\right]\nonumber \\
- & = & -\hbar^{2}e^{i\vec{k}\cdot\vec{r}}\left[-k_{m}k_{l}+ik_{m}\partial_{l}+ik_{l}+\partial_{l}\partial_{m}\right]g_{\alpha}\left(\vec{r}\right)
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-This approach will result in extra terms.
- To correctly treat them I have to write the matrix in the 
-\begin_inset Formula $X,Y,Z$
-\end_inset
-
- basis, apply the derivatives to the envelope function and then rotate the
- basis.
- I will not do that for now since I will not run simulation using the 
-\begin_inset Formula $k$
-\end_inset
-
- for the confined direction.
-\end_layout
-
-\begin_layout Section
-Solving by FDM
-\end_layout
-
-\begin_layout Subsection
-One band quantum well
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\phantom{}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Lets start by the most simple model, the quantum well.
- In this model, all the variations occurs in one dimension.
- If we label this preferencial dimension as 
-\begin_inset Formula $z$
-\end_inset
-
-, then, 
-\begin_inset Formula $p_{l}\rightarrow-i\hbar\partial_{l}$
-\end_inset
-
- only for 
-\begin_inset Formula $l=z$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-The potential is written as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-V\left(\vec{r}\right)=V\left(z\right)=E_{0}\left(z\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The envelope function as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-f_{\vec{k}}\left(\vec{r}\right)=e^{i\vec{k}\cdot\vec{r}}g\left(z\right)\label{eq:enve_qw}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-And the kinetic term as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\nabla_{\gamma,ij}\left(z\right)=\hbar^{2}\left\{ \partial_{i}\gamma_{ij}\left(z\right)\partial_{j}-\gamma_{ij}\left(z\right)k_{j}k_{i}+\gamma_{ij}\left(z\right)\partial_{i}\partial_{j}\right\} 
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\sum_{j}^{x,y,z}\nabla_{\gamma,xj}\left(z\right) & = & -\hbar^{2}\left[\gamma_{xj}\left(z\right)k_{j}k_{x}\right]\nonumber \\
- & = & -\hbar^{2}\left[\gamma_{xx}\left(z\right)k_{x}^{2}+\gamma_{xy}\left(z\right)k_{y}k_{x}+\gamma_{xz}\left(z\right)k_{z}k_{x}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\sum_{j}^{x,y,z}\nabla_{\gamma,yj}\left(z\right) & = & -\hbar^{2}\left[\gamma_{yj}\left(z\right)k_{j}k_{y}\right]\nonumber \\
- & = & -\hbar^{2}\left[\gamma_{yx}\left(z\right)k_{x}k_{y}+\gamma_{yy}\left(z\right)k_{y}^{2}+\gamma_{yz}\left(z\right)k_{z}k_{y}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\sum_{j}^{x,y,z}\nabla_{\gamma,zj}\left(z\right) & = & \hbar^{2}\left[\partial_{z}\gamma_{zj}\left(z\right)\partial_{j}-\gamma_{zj}\left(z\right)k_{j}k_{z}+\gamma_{zj}\left(z\right)\partial_{z}\partial_{j}\right]\nonumber \\
- & = & -\hbar^{2}\left\{ \gamma_{zz}\left(z\right)k_{z}^{2}+\gamma_{zy}\left(z\right)k_{y}k_{z}+\gamma_{zx}\left(z\right)k_{x}k_{z}-\partial_{z}\left[\gamma_{zz}\left(z\right)\partial_{z}\right]\right\} 
-\end{eqnarray}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-putting all together
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\sum_{i,j}^{x,y,z}\nabla_{\gamma,ij}\left(z\right) & = & -\hbar^{2}\left[\gamma_{xx}\left(z\right)k_{x}^{2}+\gamma_{yy}\left(z\right)k_{y}^{2}+\gamma_{zz}\left(z\right)k_{z}^{2}+2\gamma_{xy}\left(z\right)k_{y}k_{x}+2\gamma_{xz}\left(z\right)k_{z}k_{x}+2\gamma_{yz}\left(z\right)k_{z}k_{y}\right]\nonumber \\
- &  & +\hbar^{2}\left\{ \partial_{z}\left[\gamma_{zz}\left(z\right)\partial_{z}\right]\right\} \label{eq:kinetic_qw}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsubsection
-Discretization
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\phantom{}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The space will be discretized as 
-\begin_inset Formula $z_{n}=n\delta z,\: n=0,1,2,\cdots$
-\end_inset
-
- 
-\end_layout
-
-\begin_layout Standard
-The potential is written as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-V\left(z_{n}\right)=E_{0}\left(n\delta z\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The envelope function as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-g\left(z_{n}\right)=g\left(n\delta z\right)\label{eq:discre_envefunc}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-And the kinetic term as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\nabla_{\gamma,ij}\left(z_{n}\right)=\nabla_{\gamma,ij}\left(n\delta z\right)\label{eq:discre_kinetic}
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Applying (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:discre_kinetic"
-
-\end_inset
-
-) to the wave function (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:discre_envefunc"
-
-\end_inset
-
-)
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
--\hbar^{2}\left[\gamma_{xx}\left(z_{n}\right)k_{x}^{2}+\gamma_{yy}\left(z_{n}\right)k_{y}^{2}+\gamma_{zz}\left(z_{n}\right)k_{z}^{2}+2\gamma_{xy}\left(z_{n}\right)k_{y}k_{x}+2\gamma_{xz}\left(z_{n}\right)k_{z}k_{x}+2\gamma_{yz}\left(z_{n}\right)k_{z}k_{y}\right]g\left(z_{n}\right)\label{eq:local}
-\end{equation}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-to simplify the notation, lets call equation (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:local"
-
-\end_inset
-
-) of
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-L\left(z_{n}\right)g\left(z_{n}\right)=-\hbar^{2}\left[\gamma_{xx}\left(z_{n}\right)k_{x}^{2}+\gamma_{yy}\left(z_{n}\right)k_{y}^{2}+\gamma_{zz}\left(z_{n}\right)k_{z}^{2}+2\gamma_{xy}\left(z_{n}\right)k_{y}k_{x}+2\gamma_{xz}\left(z_{n}\right)k_{z}k_{x}+2\gamma_{yz}\left(z_{n}\right)k_{z}k_{y}\right]g\left(z_{n}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-If we use cental differences to approximate the derivatives (Chuang, Chang)
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\hbar^{2}\left\{ \partial_{z}\left[\gamma_{zz}\left(z\right)\partial_{z}\right]\right\} g\left(z_{n}\right) & = & \hbar^{2}\left\{ -\left[\frac{\gamma_{zz}\left(z_{n+1}\right)+\gamma_{zz}\left(z_{n}\right)}{2h^{2}}\right]g\left(z_{n+1}\right)\right.\nonumber \\
- &  & +\left[\frac{\gamma_{zz}\left(z_{n+1}\right)+2\gamma_{zz}\left(z_{n}\right)+\gamma_{zz}\left(z_{n-1}\right)}{2h^{2}}\right]g\left(z_{n}\right)\nonumber \\
- &  & -\left.\left[\frac{\gamma_{zz}\left(z_{n-1}\right)+\gamma_{zz}\left(z_{n}\right)}{2h^{2}}\right]g\left(z_{n-1}\right)\right\} \label{eq:nonlocal}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-In matrix form, we can write equation (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:local"
-
-\end_inset
-
-) as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\left(\begin{array}{ccccc}
-L\left(z_{0}\right)\\
- & L\left(z_{1}\right)\\
- &  & \ddots\\
- &  &  & L\left(z_{n-1}\right)\\
- &  &  &  & L\left(z_{n}\right)
-\end{array}\right)\times\left(\begin{array}{c}
-g\left(z_{0}\right)\\
-g\left(z_{1}\right)\\
-\vdots\\
-g\left(z_{n-2}\right)\\
-g\left(z_{n-1}\right)
-\end{array}\right)
-\end{equation}
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-and equation (
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "eq:nonlocal"
-
-\end_inset
-
-) as
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\frac{\hbar^{2}}{2h^{2}}\left(\begin{array}{ccccc}
-\left[\gamma_{zz}\left(z_{1}\right)+2\gamma_{zz}\left(z_{0}\right)\right] & -\gamma_{zz}\left(z_{1}\right)+\gamma_{zz}\left(z_{0}\right)\\
--\gamma_{zz}\left(z_{0}\right)+\gamma_{zz}\left(z_{1}\right) & \left[\gamma_{zz}\left(z_{2}\right)+2\gamma_{zz}\left(z_{1}\right)+\gamma_{zz}\left(z_{0}\right)\right] & \ddots\\
- & \ddots & \ddots & \ddots\\
- &  & \ddots & \left[\gamma_{zz}\left(z_{n+1}\right)+2\gamma_{zz}\left(z_{n}\right)+\gamma_{zz}\left(z_{n-1}\right)\right] & -\gamma_{zz}\left(z_{n-1}\right)+\gamma_{zz}\left(z_{n-2}\right)\\
- &  &  & -\gamma_{zz}\left(z_{n-1}\right) & \left[2\gamma_{zz}\left(z_{n-1}\right)+\gamma_{zz}\left(z_{n-2}\right)\right]
-\end{array}\right)\times\left(\begin{array}{c}
-g\left(z_{0}\right)\\
-g\left(z_{1}\right)\\
-\vdots\\
-g\left(z_{n-2}\right)\\
-g\left(z_{n-1}\right)
-\end{array}\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Degenerated bands quantum well
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\phantom{}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Lets analyse the kinetic part of the Hamiltonian,
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\left[\begin{array}{cccccc}
-Q & S & R & 0 & \frac{i}{\sqrt{2}}S & -i\sqrt{2}R\\
-S^{\dagger} & T & 0 & R & -\frac{i}{\sqrt{2}}\left(Q-T\right) & i\sqrt{\frac{3}{2}}S\\
-R^{\dagger} & 0 & T & -S & -i\sqrt{\frac{3}{2}}S^{\dagger} & -\frac{i}{\sqrt{2}}\left(Q-T\right)\\
-0 & R^{\dagger} & -S^{\dagger} & Q & -i\sqrt{2}R^{\dagger} & -\frac{i}{\sqrt{2}}S^{\dagger}\\
--\frac{i}{\sqrt{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & i\sqrt{\frac{3}{2}}S & i\sqrt{2}R & \frac{1}{2}\left(Q+T\right)-\Delta_{SO} & 0\\
-i\sqrt{2}R^{\dagger} & -i\sqrt{\frac{3}{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & \frac{i}{\sqrt{2}}S & 0 & \frac{1}{2}\left(Q+T\right)-\Delta_{SO}
-\end{array}\right],
-\]
-
-\end_inset
-
-
-\begin_inset Newline newline
-\end_inset
-
-if the confinement is on the 
-\begin_inset Formula $z$
-\end_inset
-
- direction, 
-\begin_inset Formula $k_{z}\rightarrow-i\partial_{z}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-Q & = & -\left(\gamma_{1}+\gamma_{2}\right)k_{x}^{2}-\left(\gamma_{1}+\gamma_{2}\right)k_{y}^{2}+\left(\gamma_{1}-2\gamma_{2}\right)\partial_{z}^{2}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-T & = & -\left(\gamma_{1}-\gamma_{2}\right)k_{x}^{2}-\left(\gamma_{1}-\gamma_{2}\right)k_{y}^{2}+\left(\gamma_{1}+2\gamma_{2}\right)\partial_{z}^{2}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-S & = & \sqrt{3}\left[\gamma_{3}\left(k_{x}-ik_{y}\right)\partial_{z}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-R & = & -\sqrt{3}\left[\gamma_{2}\left(k_{x}^{2}-k_{y}^{2}\right)-i\gamma_{3}k_{x}k_{y}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Using the same discretization as before, and approximating the derivatives
- by central finite differences (Chuang, Chang 1997) we will write the above
- terms into its matricial form
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-A(z_{n})\partial_{z}^{2}\approx-\frac{A\left(z_{n+1}\right)+A\left(z_{n}\right)}{2h^{2}}g\left(z_{n+1}\right)+\frac{A\left(z_{n-1}\right)+2A\left(A_{z}\right)+A\left(z_{n+1}\right)}{2h^{2}}g\left(z_{n}\right)-\frac{A\left(z_{n-1}\right)+A\left(z_{n}\right)}{2h^{2}}g\left(z_{n-1}\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-A(z_{n})\partial_{z}\approx\frac{A\left(z_{n+1}\right)+A\left(z_{n}\right)}{4h}g\left(z_{n+1}\right)-\frac{A\left(z_{n-1}\right)+A\left(z_{n}\right)}{4h}g\left(z_{n-1}\right)
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\tilde{Q}\left(z_{n}\right)=-\left(\gamma_{1}\left(z_{n}\right)+\gamma_{2}\left(z_{n}\right)\right)k_{x}^{2}-\left(\gamma_{1}\left(z_{n}\right)+\gamma_{2}\left(z_{n}\right)\right)k_{y}^{2}+\left(\gamma_{1}\left(z_{n}\right)-2\gamma_{2}\left(z_{n}\right)\right)\partial_{z}^{2}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\tilde{T}\left(z_{n}\right) & = & -\left(\gamma_{1}\left(z_{n}\right)-\gamma_{2}\left(z_{n}\right)\right)k_{x}^{2}-\left(\gamma_{1}\left(z_{n}\right)-\gamma_{2}\left(z_{n}\right)\right)k_{y}^{2}+\left(\gamma_{1}\left(z_{n}\right)+2\gamma_{2}\left(z_{n}\right)\right)\partial_{z}^{2}
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\tilde{S}\left(z_{n}\right) & = & \sqrt{3}\left[\left(k_{x}-ik_{y}\right)\gamma_{3}\left(z_{n}\right)\partial_{z}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\tilde{R}\left(z_{n}\right) & = & -\sqrt{3}\left[\gamma_{2}\left(z_{n}\right)\left(k_{x}^{2}-k_{y}^{2}\right)-i\gamma_{3}\left(z_{n}\right)k_{x}k_{y}\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Section
-The easiest way of doing things
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula $\phantom{}$
+\begin_inset Formula $\phantom{0}$
 \end_inset
 
 
@@ -1067,10 +325,10 @@ and
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-\left\{ \sum_{\alpha}\delta_{\alpha^{\prime}\alpha}E_{0}^{\alpha}\left(\vec{R}\right)+\left[\begin{array}{cc}
+\sum_{\alpha}\left\{ V^{\alpha^{\prime}\alpha}\left(\vec{r}\right)+\left[\begin{array}{cc}
 H_{V} & H_{VC}\\
 H_{VC}^{\dagger} & H_{C}
-\end{array}\right]\right\} \, e^{i\vec{k}_{\perp}\cdot\vec{r}_{\perp}}g_{\alpha}\left(\vec{r}_{\parallel}\right)=E_{n}\left(\vec{k}_{\parallel}\right)\, e^{i\vec{k}_{\perp}\cdot\vec{r}_{\perp}}g_{\alpha^{\prime}}\left(\vec{r}_{\parallel}\right)
+\end{array}\right]\right\} \, e^{i\vec{k}_{\perp}\cdot\vec{r}_{\perp}}g_{\alpha}\left(\vec{r}_{\parallel}\right)=E_{n}\left(\vec{k}_{\parallel}\right)\, e^{i\vec{k}_{\perp}\cdot\vec{r}_{\perp}}g_{\alpha^{\prime}}\left(\vec{r}_{\parallel}\right)\label{eq:hamiltonianZB}
 \end{equation}
 
 \end_inset
@@ -1092,7 +350,7 @@ R^{\dagger} & 0 & T & -S & -i\sqrt{\frac{3}{2}}S^{\dagger} & -\frac{i}{\sqrt{2}}
 0 & R^{\dagger} & -S^{\dagger} & Q & -i\sqrt{2}R^{\dagger} & -\frac{i}{\sqrt{2}}S^{\dagger}\\
 -\frac{i}{\sqrt{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & i\sqrt{\frac{3}{2}}S & i\sqrt{2}R & \frac{1}{2}\left(Q+T\right)-\Delta_{SO} & 0\\
 i\sqrt{2}R^{\dagger} & -i\sqrt{\frac{3}{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & \frac{i}{\sqrt{2}}S & 0 & \frac{1}{2}\left(Q+T\right)-\Delta_{SO}
-\end{array}\right],
+\end{array}\right],\label{eq:valenceMatrixZB}
 \end{equation}
 
 \end_inset
@@ -1106,7 +364,7 @@ i\sqrt{2}R^{\dagger} & -i\sqrt{\frac{3}{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left
 H_{C}=\left[\begin{array}{cc}
 E_{C} & 0\\
 0 & E_{C}
-\end{array}\right]
+\end{array}\right]\label{eq:conductionMatrixZB}
 \end{equation}
 
 \end_inset
@@ -1125,7 +383,7 @@ H_{VC}=\left[\begin{array}{cc}
 0 & -P_{+}\\
 -\frac{i}{\sqrt{3}}P_{z} & -i\sqrt{\frac{2}{3}}P_{-}\\
 \sqrt{\frac{2}{3}}P_{+} & -\frac{1}{\sqrt{3}}P_{z}
-\end{array}\right]
+\end{array}\right]\label{eq:couplingMatrixZB}
 \end{equation}
 
 \end_inset
@@ -1145,7 +403,7 @@ R^{\dagger} & 0 & T & -S & -i\sqrt{\frac{3}{2}}S^{\dagger} & -\frac{i}{\sqrt{2}}
 i\sqrt{2}R^{\dagger} & -i\sqrt{\frac{3}{2}}S^{\dagger} & \frac{i}{\sqrt{2}}\left(Q-T\right) & \frac{i}{\sqrt{2}}S & 0 & \frac{1}{2}\left(Q+T\right)-\Delta_{SO} & \sqrt{\frac{2}{3}}P_{+} & -\frac{1}{\sqrt{3}}P_{z}\\
 iP_{+} & \sqrt{\frac{2}{3}}P_{z} & \frac{i}{\sqrt{3}}P_{-} & 0 & \frac{i}{\sqrt{3}}P_{z} & \sqrt{\frac{2}{3}}P_{-} & E_{C} & 0\\
 0 & -\frac{1}{\sqrt{3}}P_{+} & i\sqrt{\frac{2}{3}}P_{z} & -P_{-} & i\sqrt{\frac{2}{3}}P_{+} & -\frac{1}{\sqrt{3}}P_{z} & 0 & E_{C}
-\end{array}\right]
+\end{array}\right]\label{eq:8x8MatrixZB}
 \end{equation}
 
 \end_inset
@@ -1175,37 +433,27 @@ P_{z} & = & Pk_{z}
 \end_layout
 
 \begin_layout Standard
-To solve by finite diferences method all we have to do is replace 
-\begin_inset Formula $k\rightarrow-i\partial$
-\end_inset
-
- and approximate the derivatives by
-\end_layout
-
-\begin_layout Standard
 \begin_inset Formula 
-\begin{equation}
-\left[A(z_{n})\partial_{z}^{2}\right]g\left(z_{n}\right)\approx\frac{A\left(z_{n+1}\right)+A\left(z_{n}\right)}{2h^{2}}g\left(z_{n+1}\right)-\frac{A\left(z_{n-1}\right)+2A\left(z_{n}\right)+A\left(z_{n+1}\right)}{2h^{2}}g\left(z_{n}\right)+\frac{A\left(z_{n-1}\right)+A\left(z_{n}\right)}{2h^{2}}g\left(z_{n-1}\right)
-\end{equation}
+\begin{eqnarray}
+\tilde{\gamma}_{1} & = & \gamma_{1}-\frac{E_{P}}{3E_{g}}\nonumber \\
+\tilde{\gamma}_{2} & = & \gamma_{2}-\frac{E_{P}}{6E_{g}}\nonumber \\
+\tilde{\gamma}_{3} & = & \gamma_{3}-\frac{E_{P}}{6E_{g}}\nonumber \\
+A & = & \frac{1}{m_{e}^{*}}-\left(\frac{E_{g}+\frac{2}{3}\Delta_{SO}}{E_{g}+\Delta_{SO}}\right)\frac{E_{P}}{E_{g}}\nonumber \\
+E_{P} & = & \frac{2m_{0}}{\hbar^{2}}P\nonumber \\
+P & = & \sqrt{\frac{\hbar^{2}}{2m_{0}}E_{P}}
+\end{eqnarray}
 
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\left[A(z_{n})\partial_{z}\right]g\left(z_{n}\right)\approx\frac{A\left(z_{n+1}\right)+A\left(z_{n}\right)}{4h}g\left(z_{n+1}\right)-\frac{A\left(z_{n-1}\right)+A\left(z_{n}\right)}{4h}g\left(z_{n-1}\right)
-\end{equation}
-
-\end_inset
-
-
+\begin_layout Section
+Solving by FDM
 \end_layout
 
 \begin_layout Subsection
-Quantum wire
+Discretization
 \end_layout
 
 \begin_layout Standard
@@ -1216,31 +464,185 @@ Quantum wire
 \end_layout
 
 \begin_layout Standard
-The confinement will be in 
-\begin_inset Formula $k_{x},k_{y}$
+The space will be discretized with a uniform grid, for exemple, for 1D confineme
+nt, as 
+\begin_inset Formula $z_{n}=n\delta z,\: n=0,1,2,\cdots$
 \end_inset
 
-, so making 
-\begin_inset Formula $k\rightarrow-i\partial$
+ , then we can write the potential as 
+\begin_inset Formula $V\left(z_{n}\right)=E_{g}\left(n\delta z\right)+E_{0}\left(n\delta z\right)$
 \end_inset
 
-, 
-\begin_inset Formula $k^{2}\rightarrow-\partial^{2}$
+, the envelope function as 
+\begin_inset Formula $g\left(z_{n}\right)=g\left(n\delta z\right)$
 \end_inset
 
- 
+.
+ For higher confinement dimensions is a straight forward generalization.
+\end_layout
+
+\begin_layout Subsubsection
+Grid function
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You can find more detailed description on (https://www.wias-berlin.de/people/john/
+LEHRE/NUM_PDE_FUB/num_pde_fub_2.pdf)
+\end_layout
+
+\begin_layout Standard
+Lets derive the approprieted grid function by doing the following
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-Q & = & +\left(\tilde{\gamma}_{1}+\tilde{\gamma}_{2}\right)\partial_{x}^{2}+\left(\tilde{\gamma}_{1}+\tilde{\gamma}_{2}\right)\partial_{y}^{2}-\left(\tilde{\gamma}_{1}-2\tilde{\gamma}_{2}\right)k_{z}^{2}\nonumber \\
-T & = & +\left(\tilde{\gamma}_{1}-\tilde{\gamma}_{2}\right)\partial_{x}^{2}+\left(\tilde{\gamma}_{1}-\tilde{\gamma}_{2}\right)\partial_{y}^{2}-\left(\tilde{\gamma}_{1}+2\tilde{\gamma}_{2}\right)k_{z}^{2}\nonumber \\
-S & = & 2\sqrt{3}\left[\tilde{\gamma}_{3}\left(\partial_{x}-i\partial_{y}\right)k_{z}\right]\nonumber \\
-R & = & 2\sqrt{3}\left[\tilde{\gamma}_{2}\left(\partial_{x}^{2}-\partial_{y}^{2}\right)-i\tilde{\gamma}_{3}\partial_{x}\partial_{y}\right]\nonumber \\
-E_{C} & = & E_{g}+A\left(\partial_{x}^{2}+\partial_{y}^{2}+k_{z}^{2}\right)\nonumber \\
-P_{\pm} & = & \frac{P}{\sqrt{2}}\left(-i\partial_{x}\pm\partial_{y}\right)\nonumber \\
-P_{z} & = & Pk_{z}
+\left[\partial_{x}A\left(x\right)\partial_{x}\right]g\left(x\right) & \approx & \frac{A\left(x_{i+1}\right)\partial_{x}g\left(x_{i+1}\right)-A\left(x_{i}\right)\partial_{x}g\left(x_{i}\right)}{h}\nonumber \\
+ & \approx & \frac{A\left(x_{i+1}\right)\left[g\left(x_{i+1}\right)-g\left(x_{i}\right)\right]-A\left(x_{i}\right)\left[g\left(x_{i}\right)-g\left(x_{i-1}\right)\right]}{h^{2}}
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Expanding into Taylor series
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+g\left(x_{i+1}\right)\approx g\left(x_{i}\right)+h\partial_{x}g\left(x_{i}\right)+\frac{h^{2}}{2}\partial_{x}^{2}g\left(x_{i}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+g\left(x_{i-1}\right)\approx g\left(x_{i}\right)-h\partial_{x}g\left(x_{i}\right)+\frac{h^{2}}{2}\partial_{x}^{2}g\left(x_{i}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\left[g\left(x_{i+1}\right)-g\left(x_{i}\right)\right]=h\partial_{x}g\left(x_{i}\right)+\frac{h^{2}}{2}\partial_{x}^{2}g\left(x_{i}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\left[g\left(x_{i}\right)-g\left(x_{i-1}\right)\right]=h\partial_{x}g\left(x_{i}\right)-\frac{h^{2}}{2}\partial_{x}^{2}g\left(x_{i}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+So
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+\left[\partial_{x}A\left(x\right)\partial_{x}\right]g\left(x\right) & \approx & \frac{A\left(x_{i+1}\right)-A\left(x_{i}\right)}{h}\partial_{x}g\left(x_{i}\right)+\frac{A\left(x_{i+1}\right)+A\left(x_{i}\right)}{2}\partial_{x}^{2}g\left(x_{i}\right)
+\end{eqnarray}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+then we define 
+\begin_inset Formula 
+\begin{equation}
+a_{i+1}=\frac{A\left(x_{i+1}\right)+A\left(x_{i}\right)}{2}\label{eq:gridFunc}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+ as the grid function.
+\end_layout
+
+\begin_layout Subsection
+Derivatives
+\end_layout
+
+\begin_layout Subsubsection
+1D
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{0}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To approximate the derivative 
+\begin_inset Formula $\partial_{z}\left[Q\left(z\right)\partial_{z}g\left(z\right)\right]$
+\end_inset
+
+ we will use the following relation
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\frac{1}{h}\left(a_{i+1}\frac{g\left(z_{n+1}\right)-g\left(z_{n}\right)}{h}-a_{i}\frac{g\left(z_{n}\right)-g\left(z_{n-1}\right)}{h}\right)
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+then, using the grid function given by equation (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:gridFunc"
+
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+\partial_{z}\left[Q\left(z\right)\partial_{z}g\left(z\right)\right] & = & \frac{1}{h}\left(\frac{Q\left(z_{n}\right)+Q\left(z_{n+1}\right)}{2}\frac{g\left(z_{n+1}\right)-g\left(z_{n}\right)}{h}+\frac{Q\left(z_{n-1}\right)+Q\left(z_{n}\right)}{2}\frac{g\left(z_{n-1}\right)-g\left(z_{n}\right)}{h}\right)\nonumber \\
+ & = & \frac{1}{2h^{2}}\left\{ g\left(z_{n+1}\right)\left[Q\left(z_{n}\right)+Q\left(z_{n+1}\right)\right]+g\left(z_{n-1}\right)\left[Q\left(z_{n-1}\right)+Q\left(z_{n}\right)\right]\right.\nonumber \\
+ &  & \left.-g\left(z_{n}\right)\left[Q\left(z_{n-1}\right)+2Q\left(z_{n}\right)+Q\left(z_{n+1}\right)\right]\right\} 
 \end{eqnarray}
 
 \end_inset
@@ -1251,10 +653,7 @@ P_{z} & = & Pk_{z}
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-\left\{ \sum_{\alpha}\delta_{\alpha^{\prime}\alpha}E_{0}^{\alpha}\left(x,y\right)+\left[\begin{array}{cc}
-H_{V} & H_{VC}\\
-H_{VC}^{\dagger} & H_{C}
-\end{array}\right]\right\} \, g_{\alpha}\left(x,y\right)=E_{n}\left(k_{z}\right)\, g_{\alpha^{\prime}}\left(x,y\right)
+A(z_{n})\partial_{z}\approx\frac{A\left(z_{n+1}\right)+A\left(z_{n}\right)}{4h}g\left(z_{n+1}\right)-\frac{A\left(z_{n-1}\right)+A\left(z_{n}\right)}{4h}g\left(z_{n-1}\right)
 \end{equation}
 
 \end_inset
@@ -1262,40 +661,38 @@ H_{VC}^{\dagger} & H_{C}
 
 \end_layout
 
+\begin_layout Subsubsection
+2D
+\end_layout
+
 \begin_layout Standard
-Discretizing the space into a uniform mesh
+\begin_inset Formula $\phantom{}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Following the same idea of the previous section, we get
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\Delta x,\:\Delta y & = & h
+\left[A(x,y)\partial_{x}^{2}\right]g\left(x,y\right) & = & \frac{A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n+1},y_{n}\right)-\frac{A\left(x_{n-1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n}\right)\nonumber \\
+ &  & +\frac{A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n-1},y_{n}\right)
 \end{eqnarray}
 
 \end_inset
 
 
-\begin_inset Newline newline
-\end_inset
-
-then, for the second order derivative
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\left[A(x,y)\partial_{x}^{2}\right]g\left(x,y\right) & = & \frac{A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n+1},y_{n}\right)-\frac{A\left(x_{n-1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n}\right)+\frac{A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n-1},y_{n}\right)
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\left[A(x,y)\partial_{y}^{2}\right]g\left(x,y\right) & = & \frac{A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n+1}\right)-\frac{A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)}{2h^{2}}g\left(x_{n},y_{n}\right)+\frac{A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n-1}\right)
+\left[A(x,y)\partial_{y}^{2}\right]g\left(x,y\right) & = & \frac{A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n+1}\right)-\frac{A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)}{2h^{2}}g\left(x_{n},y_{n}\right)\nonumber \\
+ &  & +\frac{A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n-1}\right)
 \end{eqnarray}
 
 \end_inset
@@ -1338,98 +735,6 @@ Combining the two equation above
 \end_layout
 
 \begin_layout Standard
-Calling
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\text{diag}=-\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n-1},y_{n}\right)+4A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\text{off\_x} & = & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
- & \approx & \left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{eqnarray}
-\text{off\_y} & = & \left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
- & \approx & \left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]
-\end{eqnarray}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Considering 
-\begin_inset Formula $g\left(x,y\right)=\left[g\left(x_{0},y_{0}\right),g\left(x_{1},y_{0}\right),\cdots,g\left(x_{N-1},y_{0}\right),g\left(x_{0},y_{1}\right),\cdots\right]$
-\end_inset
-
-, we will get a matrix like
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-\left[A(x,y)\partial_{x}^{2}+A(x,y)\partial_{y}^{2}\right]g\left(x,y\right)=\left[\begin{array}{ccc}
-B &  & C\\
- & \ddots\\
-C &  & B
-\end{array}\right]
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-B=\frac{1}{2h^{2}}\left[\begin{array}{ccc}
-\text{diag} & \text{off\_x}\\
-\text{off\_x} & \text{diag} & \text{off\_x}\\
- & \text{off\_x} & \text{diag}
-\end{array}\right]
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\begin{equation}
-C=\frac{1}{2h^{2}}\left[\begin{array}{ccc}
- & \text{off\_y}\\
-\text{off\_y} &  & \text{off\_y}\\
- & \text{off\_y}
-\end{array}\right]
-\end{equation}
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 For the first order dervative, we get
 \end_layout
 
@@ -1462,10 +767,10 @@ Combining the two equations above
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-4h\left[A(x,y)\partial_{x}+A(x,y)\partial_{y}\right]g\left(x,y\right) & = & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n+1},y_{n}\right)\nonumber \\
+4h\left[A(x,y)\partial_{x}-iA(x,y)\partial_{y}\right]g\left(x,y\right) & = & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n+1},y_{n}\right)\nonumber \\
  &  & -\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n-1},y_{n}\right)\nonumber \\
- &  & +\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n},y_{n+1}\right)\nonumber \\
- &  & -\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n},y_{n-1}\right)
+ &  & -i\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n},y_{n+1}\right)\nonumber \\
+ &  & +i\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n},y_{n-1}\right)
 \end{eqnarray}
 
 \end_inset
@@ -1474,13 +779,249 @@ Combining the two equations above
 \end_layout
 
 \begin_layout Standard
-For the cross-derivative, we get
+To approximate the cross-derivative 
+\begin_inset Formula $\left[\partial_{x}A\left(x,y\right)\partial_{y}\right]g\left(x,y\right)$
+\end_inset
+
+ we do
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+4h^{2}\partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]g\left(x_{n},y_{n}\right) & \approx & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n+1},y_{n+1}\right)-g\left(x_{n+1},y_{n}\right)\right]\nonumber \\
+ &  & -\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n-1},y_{n+1}\right)-g\left(x_{n-1},y_{n}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+4h^{2}\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]g\left(x_{n},y_{n}\right) & \approx & \left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n+1},y_{n+1}\right)-g\left(x_{n},y_{n+1}\right)\right]\nonumber \\
+ &  & -\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n+1},y_{n-1}\right)-g\left(x_{n},y_{n-1}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+\frac{4h^{2}}{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & g\left(x_{n+1},y_{n+1}\right)\left[A\left(x_{n+1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
+ &  & -g\left(x_{n+1},y_{n}\right)\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n},y_{n+1}\right)\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n-1},y_{n+1}\right)\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & +g\left(x_{n-1},y_{n}\right)\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n+1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & +g\left(x_{n},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+4h^{2}\partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]g\left(x_{n},y_{n}\right) & \approx & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n+1},y_{n}\right)-g\left(x_{n+1},y_{n-1}\right)\right]\nonumber \\
+ &  & -\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n-1},y_{n}\right)-g\left(x_{n-1},y_{n-1}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+4h^{2}\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]g\left(x_{n},y_{n}\right) & \approx & \left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n},y_{n+1}\right)-g\left(x_{n-1},y_{n+1}\right)\right]\nonumber \\
+ &  & -\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]\left[g\left(x_{n},y_{n-1}\right)-g\left(x_{n-1},y_{n-1}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+\frac{4h^{2}}{2}\left\{ \partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & g\left(x_{n-1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n-1},y_{n}\right)\right]\nonumber \\
+ &  & +g\left(x_{n+1},y_{n}\right)\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & +g\left(x_{n},y_{n+1}\right)\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n+1},y_{n-1}\right)\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n-1},y_{n+1}\right)\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n-1},y_{n}\right)\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
+ &  & -g\left(x_{n},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+ & h^{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]+\partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & =\nonumber \\
+ & +g\left(x_{n+1},y_{n+1}\right)\left[A\left(x_{n+1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
+ & +g\left(x_{n-1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n-1},y_{n}\right)\right]\nonumber \\
+ & -g\left(x_{n-1},y_{n+1}\right)\left[A\left(x_{n-1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
+ & -g\left(x_{n+1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Models
+\end_layout
+
+\begin_layout Subsection
+Quantum well
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Lets start by the most simple model, the quantum well.
+ In this model, all the variations occurs in one dimension.
+ If we label this preferencial dimension as 
+\begin_inset Formula $z$
+\end_inset
+
+, then, 
+\begin_inset Formula $p_{l}\rightarrow-i\hbar\partial_{l}$
+\end_inset
+
+ only for 
+\begin_inset Formula $l=z$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+One band
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{0}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Re-writting equations (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:envFunc"
+
+\end_inset
+
+) and (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:kinetic"
+
+\end_inset
+
+) for this case, we get
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \begin{equation}
-\left[\partial_{x}A\left(x,y\right)\partial_{y}\right]g\left(x,y\right)=\frac{A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n+1}\right)-\frac{A\left(x_{n-1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n}\right)+\frac{A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n},y_{n-1}\right)
+f_{\vec{k}}\left(\vec{r}\right)=e^{i\vec{k}_{\perp}\cdot\vec{r}_{\perp}}g\left(z\right),
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+and
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+K\left(\vec{r}\right) & = & \sum_{i,j}^{z}p_{i}\gamma_{ij}\left(\vec{r}\right)p_{j}\nonumber \\
+ & = & p_{z}\gamma_{zz}\left(\vec{r}\right)p_{z}\nonumber \\
+ & = & -\hbar^{2}\partial_{z}\frac{1}{m_{e}^{*}}\partial_{z}.
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The matrix form of the Hamiltonian (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:conductionMatrixZB"
+
+\end_inset
+
+) can be write as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+E_{C}\left(z_{n}\right) & = & E_{g}+k_{x}Ak_{x}+k_{y}Ak_{y}+k_{z}Ak_{z}\nonumber \\
+ & = & E_{g}\left(z_{n}\right)+k_{x}A\left(z_{n}\right)k_{x}+k_{y}A\left(z_{n}\right)k_{y}-\partial_{z}A\left(z_{n}\right)\partial_{z}
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Degenerated bands quantum well
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Re-writting the terms of matrix (
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "eq:conductionMatrixZB"
+
+\end_inset
+
+), we get
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+Q\left(z_{n}\right)=-\left(\gamma_{1}+\gamma_{2}\right)k_{x}^{2}-\left(\gamma_{1}+\gamma_{2}\right)k_{y}^{2}+\left(\gamma_{1}-2\gamma_{2}\right)\partial_{z}^{2}
 \end{equation}
 
 \end_inset
@@ -1490,9 +1031,9 @@ For the cross-derivative, we get
 
 \begin_layout Standard
 \begin_inset Formula 
-\begin{equation}
-\left[\partial_{y}A\left(x,y\right)\partial_{x}\right]g\left(x,y\right)=\frac{A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n+1},y_{n}\right)-\frac{A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)}{2h^{2}}g\left(x_{n},y_{n}\right)+\frac{A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)}{2h^{2}}g\left(x_{n-1},y_{n}\right)
-\end{equation}
+\begin{eqnarray}
+T\left(z_{n}\right) & = & -\left(\gamma_{1}-\gamma_{2}\right)k_{x}^{2}-\left(\gamma_{1}-\gamma_{2}\right)k_{y}^{2}+\left(\gamma_{1}+2\gamma_{2}\right)\partial_{z}^{2}
+\end{eqnarray}
 
 \end_inset
 
@@ -1501,13 +1042,64 @@ For the cross-derivative, we get
 
 \begin_layout Standard
 \begin_inset Formula 
-\begin{eqnarray*}
-\left[\partial_{x}A\left(x,y\right)\partial_{y}+\partial_{y}A\left(x,y\right)\partial_{x}\right]g\left(x,y\right) & = & -\frac{A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n-1}\right)+4A\left(x_{n},y_{n}\right)+A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n+1}\right)}{h^{2}}g\left(x_{n},y_{n}\right)\\
- & + & \frac{A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{h^{2}}g\left(x_{n},y_{n+1}\right)\\
- & + & \frac{A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)}{h^{2}}g\left(x_{n},y_{n-1}\right)\\
- & + & \frac{A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)}{h^{2}}g\left(x_{n+1},y_{n}\right)\\
- & + & \frac{A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)}{h^{2}}g\left(x_{n-1},y_{n}\right)
-\end{eqnarray*}
+\begin{eqnarray}
+S\left(z_{n}\right) & = & \sqrt{3}\left[\left(k_{x}-ik_{y}\right)\gamma_{3}\partial_{z}\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+R\left(z_{n}\right) & = & -\sqrt{3}\left[\gamma_{2}\left(k_{x}^{2}-k_{y}^{2}\right)-i\gamma_{3}k_{x}k_{y}\right]
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Quantum wire
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The confinement will be in 
+\begin_inset Formula $k_{x},k_{y}$
+\end_inset
+
+, so making 
+\begin_inset Formula $k\rightarrow-i\partial$
+\end_inset
+
+, 
+\begin_inset Formula $k^{2}\rightarrow-\partial^{2}$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+Q\left(x_{n},y_{n}\right) & = & \left(\gamma_{1}+\gamma_{2}\right)\partial_{x}^{2}+\left(\gamma_{1}+\gamma_{2}\right)\partial_{y}^{2}-\left(\gamma_{1}-2\gamma_{2}\right)k_{z}^{2}\nonumber \\
+T\left(x_{n},y_{n}\right) & = & \left(\gamma_{1}-\gamma_{2}\right)\partial_{x}^{2}+\left(\gamma_{1}-\gamma_{2}\right)\partial_{y}^{2}-\left(\gamma_{1}+2\gamma_{2}\right)k_{z}^{2}\nonumber \\
+S\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{3}\left(\partial_{x}-i\partial_{y}\right)k_{z}\right]\nonumber \\
+S^{*}\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{3}\left(\partial_{x}+i\partial_{y}\right)k_{z}\right]\nonumber \\
+R\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{2}\left(\partial_{x}^{2}-\partial_{y}^{2}\right)-i\tilde{\gamma}_{3}\partial_{x}\partial_{y}\right]\nonumber \\
+R^{*}\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{2}\left(\partial_{x}^{2}-\partial_{y}^{2}\right)+i\tilde{\gamma}_{3}\partial_{x}\partial_{y}\right]\nonumber \\
+E_{C}\left(x_{n},y_{n}\right) & = & E_{g}+A\left(\partial_{x}^{2}+\partial_{y}^{2}+k_{z}^{2}\right)
+\end{eqnarray}
 
 \end_inset
 
