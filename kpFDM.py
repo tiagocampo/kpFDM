@@ -64,9 +64,11 @@ class Potential(object):
 
       if params['dimen'] == 1:
         if params['model'] == 'ZB2x2':
-            self.pot = np.zeros(params['N'])
+          self.pot = np.zeros(params['N'])
         if params['model'] == 'ZB6x6':
-            self.pot = np.zeros(3*params['N']).reshape((3,params['N']))
+          self.pot = np.zeros(3*params['N']).reshape((3,params['N']))
+        if params['model'] == 'ZB8x8':
+          self.pot = np.zeros(5*params['N']).reshape((5,params['N']))
 
       if params['dimen'] == 2:
         if params['model'] == 'ZB2x2':
@@ -100,9 +102,7 @@ class Potential(object):
               value = {}
 
               for i in range(params['nmat']):
-                  #print 'constructing layer %d potential from %d(%f) to %d(%f)'%(i,params['startPos'][i],params['x'][params['startPos'][i]],
-                  #params['endPos'][i],params['x'][params['endPos'][i]])
-
+                
                   if flag == 'het':
                     value[0] = (params['gap'][0]-params['gap'][i])*params['bshift']
                     value[1] = value[0]
@@ -114,6 +114,29 @@ class Potential(object):
 
                   for j in range(3):
                     self.pot[j,:] = drawFunc.square(params, self.pot[j,:], value[j], i)
+
+          if params['model'] == 'ZB8x8':
+              
+              value = {}
+
+              for i in range(params['nmat']):
+
+                  if flag == 'het':
+                    value[0] = params['gap'][0] + (params['gap'][i]-params['gap'][0])*(1.-params['bshift'])
+                    value[1] = (params['gap'][0]-params['gap'][i])*params['bshift']
+                    value[2] = -params['deltaSO'][i]
+                    #value[3] = value[1]-params['deltaSO'][i]
+                    aux = 3
+                  if flag == 'kin':
+                    value[0] = params['elecmassParam'][i]
+                    value[1] = params['Ll'][i]
+                    value[2] = params['Mm'][i]
+                    value[3] = params['Nn'][i]
+                    value[4] = params['P0'][i]
+                    aux = 5
+
+                  for j in range(aux):
+                    self.pot[j,:] = drawFunc.square(params, self.pot[j,:], value[j], i)            
 
       else:
           print 'Not implemented yet'
@@ -147,6 +170,11 @@ class Potential(object):
         plt.plot(params['x']*UniConst.A0,self.pot[0,:])
         plt.plot(params['x']*UniConst.A0,self.pot[1,:])
         plt.plot(params['x']*UniConst.A0,self.pot[2,:])
+        plt.show()
+      if params['model'] == 'ZB8x8':
+        plt.plot(params['x']*UniConst.A0,self.pot[0,:])
+        plt.plot(params['x']*UniConst.A0,self.pot[1,:])
+        plt.plot(params['x']*UniConst.A0,self.pot[1,:]+self.pot[2,:])
         plt.show()
 
 class IO(object):
@@ -270,6 +298,10 @@ class IO(object):
                                   Number of valance bands to compute
                                   """)
 
+        self.parser.add_argument('-ep', '--INTERBAND', action='store', dest='ep',
+                                  type=float, nargs='+', help="""
+                                  Interband coupling parameter
+                                  """)
 
         self.args = self.parser.parse_args()
 
@@ -286,7 +318,7 @@ class IO(object):
 
         assert self.args.model in ['ZB2x2', 'ZB6x6', 'ZB8x8']
 
-        if self.args.model == 'ZB2x2':
+        if self.args.model in ['ZB2x2'] or self.args.model in ['ZB8x8']:
           assert self.args.numcb > 0
         else:
           if self.args.model in ['ZB6x6', 'ZB8x8']:
@@ -296,6 +328,8 @@ class IO(object):
             assert len(self.args.gamma3) == self.args.nmat
             assert len(self.args.deltaSO) == self.args.nmat
 
+        if self.args.model in ['ZB8x8']:
+          assert len(self.args.ep) == self.args.nmat
 
         if self.args.model in ['ZB2x2', 'ZB6x6', 'ZB8x8']:
             assert len(self.args.gap) == self.args.nmat
@@ -331,6 +365,7 @@ class IO(object):
         self.parameters['gamma2'] = self.args.gamma2
         self.parameters['gamma3'] = self.args.gamma3
         self.parameters['deltaSO'] = self.args.deltaSO
+        self.parameters['Ep'] = self.args.ep
 
         self.parameters['latpar'] = self.args.latpar
         self.parameters['npoints'] = self.args.npoints
@@ -342,7 +377,7 @@ class IO(object):
 
         # Secondary parameters
 
-        self.parameters['L'] = self.parameters['endPos'][0] - self.parameters['startPos'][0]
+        self.parameters['Len'] = self.parameters['endPos'][0] - self.parameters['startPos'][0]
         self.parameters['Enorm'] = self.const.hsqrO2m0/(self.const.A0**2)
 
         if (self.parameters['endPos'][0]-self.parameters['startPos'][0])%self.parameters['step'] != 0:
@@ -380,6 +415,25 @@ class IO(object):
           self.parameters['gamma2'] = [self.const.eVAA2*x for x in self.parameters['gamma2']]
           self.parameters['gamma3'] = [self.const.eVAA2*x for x in self.parameters['gamma3']]
 
+        if self.parameters['model'] == 'ZB8x8':
+          if self.parameters['Ep'] != 0:
+            self.parameters['P0'] = [np.sqrt(self.const.eVAA2*x) for x in self.parameters['Ep']]
+            EpOEg = [x/y for (x,y) in zip(self.parameters['Ep'],self.parameters['gap'])]
+            self.parameters['gamma1'] = [self.const.eVAA2*x - (1./3.)*y  for (x,y) in zip(self.parameters['gamma1'],EpOEg)]
+            self.parameters['gamma2'] = [self.const.eVAA2*x - (1./6.)*y  for (x,y) in zip(self.parameters['gamma2'],EpOEg)]
+            self.parameters['gamma3'] = [self.const.eVAA2*x - (1./6.)*y  for (x,y) in zip(self.parameters['gamma3'],EpOEg)]
+            self.parameters['elecmassParam'] = [1./w - ((y+(2./3.)*z)/(y+z))*x for (x,y,z,w) in zip(EpOEg,self.parameters['gap'],self.parameters['deltaSO'],self.parameters['elecmass'])]
+            self.parameters['elecmassParam'] = [self.const.eVAA2*x for x in self.parameters['elecmassParam']]
+          else:
+            self.parameters['P0'] = [0 for x in self.parameters['gamma1']]
+            self.parameters['gamma1'] = [self.const.eVAA2*x for x in self.parameters['gamma1']]
+            self.parameters['gamma2'] = [self.const.eVAA2*x for x in self.parameters['gamma2']]
+            self.parameters['gamma3'] = [self.const.eVAA2*x for x in self.parameters['gamma3']]
+            self.parameters['elecmassParam'] = [self.const.eVAA2/x for x in self.parameters['elecmass']]
+            
+          self.parameters['Ll'] = [-(x+4.*y) for (x,y) in zip(self.parameters['gamma1'],self.parameters['gamma2'])]
+          self.parameters['Mm'] = [-(x-2.*y) for (x,y) in zip(self.parameters['gamma1'],self.parameters['gamma2'])]
+          self.parameters['Nn'] = [-3.*x for x in self.parameters['gamma3']]
 
         return self.parameters
 
@@ -431,8 +485,10 @@ class ZBHamilton(ZincBlend):
       self.potHet = potHet
       self.Kin = Kin
       self.step = params['step']
+      self.der = derivate(params['N'])
 
     def buildHam2x2(self, params, kpoints):
+      
       """
       """
 
@@ -504,6 +560,7 @@ class ZBHamilton(ZincBlend):
       return HT.tocsr()
 
     def buildHam6x6(self, params, kpoints):
+      
       """
       """
 
@@ -717,18 +774,18 @@ class ZBHamilton(ZincBlend):
           offdiagT[(i-1)*(self.N-2):i*(self.N-2)] = (1./(2.*self.step**2))*np.convolve(auxT[:,i-1],[1,1],'same')[1:self.N-1]
           offdiagS[(i-1)*(self.N-2):i*(self.N-2)] = (1./(4.*self.step))*np.convolve(gamma3[:,i-1],[1,1],'same')[1:self.N-1]
 
-          R1[(i-1)*(self.N-3):i*(self.N-3)] = (1./(self.step**2))*2.*gamma3[1:self.N-2,i] +\
-                                              (1./(self.step**2))*gamma3[2:self.N-1,i] +\
-                                              (1./(self.step**2))*gamma3[i,2:self.N-1]
-          R2[(i-1)*(self.N-3):i*(self.N-3)] = (1./(self.step**2))*2.*gamma3[1:self.N-2,i] +\
-                                              (1./(self.step**2))*gamma3[0:self.N-3,i] +\
-                                              (1./(self.step**2))*gamma3[i,0:self.N-3]
-          R3[(i-1)*(self.N-3):i*(self.N-3)] = (1./(self.step**2))*2.*gamma3[1:self.N-2,i] +\
-                                              (1./(self.step**2))*gamma3[0:self.N-3,i] +\
-                                              (1./(self.step**2))*gamma3[i,2:self.N-1]
-          R4[(i-1)*(self.N-3):i*(self.N-3)] = (1./(self.step**2))*2.*gamma3[1:self.N-2,i] +\
-                                              (1./(self.step**2))*gamma3[2:self.N-1,i] +\
-                                              (1./(self.step**2))*gamma3[i,0:self.N-3]
+          R1[(i-1)*(self.N-3):i*(self.N-3)] = (1./(16.*self.step**2))*2.*gamma3[1:self.N-2,i] +\
+                                              (1./(16.*self.step**2))*gamma3[2:self.N-1,i] +\
+                                              (1./(16.*self.step**2))*gamma3[i,2:self.N-1]
+          R2[(i-1)*(self.N-3):i*(self.N-3)] = (1./(16.*self.step**2))*2.*gamma3[1:self.N-2,i] +\
+                                              (1./(16.*self.step**2))*gamma3[0:self.N-3,i] +\
+                                              (1./(16.*self.step**2))*gamma3[i,0:self.N-3]
+          R3[(i-1)*(self.N-3):i*(self.N-3)] = (1./(16.*self.step**2))*2.*gamma3[1:self.N-2,i] +\
+                                              (1./(16.*self.step**2))*gamma3[0:self.N-3,i] +\
+                                              (1./(16.*self.step**2))*gamma3[i,2:self.N-1]
+          R4[(i-1)*(self.N-3):i*(self.N-3)] = (1./(16.*self.step**2))*2.*gamma3[1:self.N-2,i] +\
+                                              (1./(16.*self.step**2))*gamma3[2:self.N-1,i] +\
+                                              (1./(16.*self.step**2))*gamma3[i,0:self.N-3]
 
           diagR[(i-1)*(self.N-2):i*(self.N-2)] = -(1./(2.*self.step**2))*np.convolve(gamma2[:,i-1],[1,0,1],'valid') +\
                               (1./(2.*self.step**2))*np.convolve(gamma2[i-1,:],[1,0,1],'valid')
@@ -851,6 +908,148 @@ class ZBHamilton(ZincBlend):
 
       return HT.tocsr()
 
+    def buildHam8x8(self, params, kpoints):
+      """
+      """
+
+      
+      kx = kpoints[0]
+      ky = kpoints[1]
+      kz = kpoints[2]
+
+      if params['dimen'] == 1:
+        
+        ksquare = kx**2 + ky**2
+        IU = complex(0.,1.)
+        
+        H0 = np.zeros(8*(self.N-2), dtype=np.float64)
+        Hso = lil_matrix((8*(self.N-2),8*(self.N-2)), dtype=np.complex128)
+        Hkp = lil_matrix((4*(self.N-2),4*(self.N-2)), dtype=np.complex128)
+        HT = lil_matrix((8*(self.N-2),8*(self.N-2)), dtype=np.complex128)
+        
+        cond = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
+        
+        Px = np.zeros(self.N-2, dtype=np.complex128)
+        Py = np.zeros(self.N-2, dtype=np.complex128)
+        Pz = lil_matrix((self.N-2,self.N-2), dtype=np.complex128)
+        
+        Lx = np.zeros(self.N-2, dtype=np.complex128)
+        Ly = np.zeros(self.N-2, dtype=np.complex128)
+        Lz = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
+        
+        Mx = np.zeros(self.N-2, dtype=np.complex128)
+        My = np.zeros(self.N-2, dtype=np.complex128)
+        Mz = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
+        
+        Nx = np.zeros(self.N-2, dtype=np.float64)
+        Ny = np.zeros(self.N-2, dtype=np.float64)
+        Nxy = np.zeros(self.N-2, dtype=np.float64) 
+        Nxz = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
+        Nyz = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
+        
+        zero = diags(np.zeros(self.N-2),0)
+        
+        #-------------------------------
+        
+        H0[0*(self.N-2): 1*(self.N-2)] = self.potHet[0,1:self.N-1]
+        H0[1*(self.N-2): 2*(self.N-2)] = self.potHet[1,1:self.N-1] + self.potHet[2,1:self.N-1]
+        H0[2*(self.N-2): 3*(self.N-2)] = self.potHet[1,1:self.N-1] + self.potHet[2,1:self.N-1]
+        H0[3*(self.N-2): 4*(self.N-2)] = self.potHet[1,1:self.N-1] + self.potHet[2,1:self.N-1]
+        H0[4*(self.N-2): 5*(self.N-2)] = self.potHet[0,1:self.N-1]
+        H0[5*(self.N-2): 6*(self.N-2)] = self.potHet[1,1:self.N-1] + self.potHet[2,1:self.N-1]
+        H0[6*(self.N-2): 7*(self.N-2)] = self.potHet[1,1:self.N-1] + self.potHet[2,1:self.N-1]
+        H0[7*(self.N-2): 8*(self.N-2)] = self.potHet[1,1:self.N-1] + self.potHet[2,1:self.N-1]
+        
+        #--------------------------------
+        
+        Hso = bmat([[zero, zero, zero, zero, zero, zero, zero, zero],
+                    [None, None, -IU*diags(-self.potHet[2,1:self.N-1],0), zero, zero, zero, zero, diags(-self.potHet[2,1:self.N-1],0)],
+                    [None, IU*diags(-self.potHet[2,1:self.N-1],0), zero, zero, zero, zero, None, -IU*diags(-self.potHet[2,1:self.N-1],0)],
+                    [zero, zero, zero, zero, None, -1.*diags(-self.potHet[2,1:self.N-1],0), IU*diags(-self.potHet[2,1:self.N-1],0), None],
+                    [diags(-self.potHet[2,1:self.N-1],0)*0., zero, zero, zero, zero, None, None, None],
+                    [None, None, None, -1.*diags(-self.potHet[2,1:self.N-1],0), None, None, IU*diags(-self.potHet[2,1:self.N-1],0), None],
+                    [None, None, None, -IU*diags(-self.potHet[2,1:self.N-1],0), None, -IU*diags(-self.potHet[2,1:self.N-1],0), None, None],
+                    [None, 1.*diags(-self.potHet[2,1:self.N-1],0), IU*diags(-self.potHet[2,1:self.N-1],0), zero, zero, zero, zero, None]
+                   ])
+                   
+        #--------------------------------
+        
+        #aux = self.Kin[0,1:self.N-1]*ksquare + (1./(2.*self.step**2))*np.convolve(self.Kin[0,:],[1,2,1],'valid')        
+        aux = (1./(2.*self.step**2))*np.dot(self.der.backward(),np.dot(self.der.forward(),self.Kin[0,:]))[1:self.N-1]
+        aux += self.Kin[0,1:self.N-1]*ksquare
+        
+        #aux1 = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:],[1,1],'same')[1:self.N-1]        
+              
+        aux1 = (1./(2.*self.step**2))*np.dot(self.der.forward(),self.Kin[0,:])[1:self.N-1]
+        aux2 = (1./(2.*self.step**2))*np.dot(self.der.backward(),self.Kin[0,:])[1:self.N-1] 
+        
+        cond.setdiag(aux,0)
+        cond.setdiag(-aux1,1)
+        cond.setdiag(-aux2,-1)
+        
+ 
+        #---------------------------------
+                
+        #aux = (1./(4.*self.step))*np.convolve(self.Kin[4,:],[1,1],'same')[1:self.N-1]
+        
+        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[4,:])[1:self.N-1]
+        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[4,:])[1:self.N-1] 
+        
+        Pz.setdiag(IU*aux1,1)
+        Pz.setdiag(-IU*aux2,-1)
+        
+        Px = IU*self.Kin[4,1:self.N-1]*kx
+        Py = IU*self.Kin[4,1:self.N-1]*ky
+        
+        #----------------------------------
+        
+        Lx = self.Kin[1,1:self.N-1]*(kx**2)
+        Ly = self.Kin[1,1:self.N-1]*(ky**2)
+        #aux = (1./(4.*self.step))*np.convolve(self.Kin[1,:],[1,1],'same')[1:self.N-1]
+        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[1,:])[1:self.N-1]
+        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[1,:])[1:self.N-1] 
+        Lz.setdiag(aux1,1)
+        Lz.setdiag(-aux2,-1)
+        
+        Mx = self.Kin[2,1:self.N-1]*(kx**2)
+        My = self.Kin[2,1:self.N-1]*(ky**2)
+        #aux = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'same')[1:self.N-1]
+        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[2,:])[1:self.N-1]
+        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[2,:])[1:self.N-1] 
+        Mz.setdiag(aux1,1)
+        Mz.setdiag(-aux2,-1)
+        
+        Nx = self.Kin[3,1:self.N-1]*(kx**2)
+        Ny = self.Kin[3,1:self.N-1]*(ky**2)
+        Nxy = self.Kin[3,1:self.N-1]*(kx*ky)
+        #aux = (1./(4.*self.step))*np.convolve(self.Kin[3,:],[1,1],'same')[1:self.N-1]
+        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[3,:])[1:self.N-1]
+        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[3,:])[1:self.N-1] 
+        Nxz.setdiag(kx*aux1,1)
+        Nxz.setdiag(-kx*aux2,-1)
+        Nyz.setdiag(ky*aux1,1)
+        Nyz.setdiag(-ky*aux2,-1)
+        
+        #-----------------------------------
+        
+        
+        Hkp = bmat([[cond        , diags(Px,0)      , diags(Py,0)      , Pz               ],
+                    [diags(-Px,0), diags(Lx+My,0)+Mz, diags(Nxy,0)     , Nxz              ],
+                    [diags(-Py,0), diags(Nxy,0)     , diags(Ly+Mx,0)+Mz, Nyz              ],
+                    [-Pz         , Nxz              , Nyz              , Lz+diags(Mx+My,0)]]
+                  )
+        
+        
+        HT = bmat([[Hkp, None],[None, Hkp]], format='lil')
+        HT += diags(H0,0)
+        HT += Hso 
+        
+        #np.savetxt('HT.dat', HT.todense())
+        #sys.exit()
+        
+      return HT.tocsr()
+        
+
     def buildHam(self, params, kpoints):
       """
       """
@@ -862,6 +1061,10 @@ class ZBHamilton(ZincBlend):
       if params['model'] == 'ZB6x6':
 
         HT = self.buildHam6x6(params, kpoints)
+
+      if params['model'] == 'ZB8x8':
+        
+        HT = self.buildHam8x8(params, kpoints)
 
       return HT.tocsr()
 
@@ -897,6 +1100,14 @@ class ZBHamilton(ZincBlend):
           #X = np.zeros(int(params['numvb'])*6*int(params['N']-2)**2, dtype=np.complex128).reshape((6*int(params['N']-2)**2,int(params['numvb'])))
           #X = rand(6*int(params['N']-2)**2,int(params['numvb']))
 
+      if params['model'] == 'ZB8x8':
+        inum = int(params['numcb'])+int(params['numvb'])
+        inum = 8*int(params['N'])-18
+        va = np.zeros(int(params['npoints'])*inum).reshape((inum,int(params['npoints'])))
+
+        if params['dimen'] == 1:
+          ve = np.zeros(int(params['npoints'])*inum*8*int(params['N']-2)).reshape((8*int(params['N']-2),inum,int(params['npoints'])))
+
       for i in range(int(params['npoints'])):
 
         if params['direction'] == 'kx':
@@ -916,13 +1127,15 @@ class ZBHamilton(ZincBlend):
           #va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=1, maxiter=400)
 
         if params['model'] == 'ZB6x6':
-          va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
+          #va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
           #va[:,i], ve[:,:,i] = eigvalsh(HT.todense(), b=None, overwrite_a=True, eigvals=(0,int(params['numvb'])), check_finite=False)
-          #va = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
+          va[:,i] = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
           #va[:,i], ve[:,:,i] = lobpcg(HT,X,largest=True,tol=1e-5,verbosityLevel=1, maxiter=400)
           #va[:,i] = eigs(HT, int(params['numvb']), ncv = 3*int(params['numvb']), which='SM', tol=1e-5, return_eigenvectors=False, maxiter=400)
         if params['model'] == 'ZB8x8':
-          print 'Not implemented yet'
+          #va[:,i], ve[:,:,i] = eigsh(HT, inum)
+          va[:,i] = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
+
 
       return self.kmesh, va, ve
 
@@ -939,7 +1152,7 @@ class derivate(object):
       """
       r = np.zeros(self.size)
       c = np.zeros(self.size)
-      r[0] = -1
+      r[0] = 1
       r[self.size-1] = 1
       c[1] = 1
       return toeplitz(r,c)
@@ -951,8 +1164,8 @@ class derivate(object):
       r = np.zeros(self.size)
       c = np.zeros(self.size)
       r[0] = 1
-      r[self.size-1] = -1
-      c[1] = -1
+      r[self.size-1] = 1
+      c[1] = 1
       return toeplitz(r,c).T
     
     def central(self):
@@ -1052,7 +1265,22 @@ if ioObject.parameters['model'] == 'ZB6x6':
   #va = np.sort(va, axis=0)
 
   fig = plt.figure()
-  for i in range(int(ioObject.parameters['numvb'])):
+  for i in range(int(ioObject.parameters['N']-2)):
     plt.plot(k/UniConst.A0, va[i,:])#*ioObject.parameters['Enorm'])
     #plt.plot(-k/UniConst.A0, va[i,:]*ioObject.parameters['Enorm'])
+  plt.show()
+
+if ioObject.parameters['model'] == 'ZB8x8':
+
+  inum = int(ioObject.parameters['numcb'])+int(ioObject.parameters['numvb'])
+  inum = 8*int(ioObject.parameters['N'])-18
+
+  va = np.sort(va, axis=0)
+
+  #rearrangedEvalsVecs = sorted(zip(evals,evecs.T),\
+  #                                 key=lambda x: x[0].real, reverse=True)
+
+  fig = plt.figure()
+  for i in range(inum):
+    plt.plot(k/UniConst.A0, va[i,:])#*ioObject.parameters['Enorm'])
   plt.show()

@@ -813,7 +813,7 @@ To approximate the cross-derivative
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\frac{4h^{2}}{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & g\left(x_{n+1},y_{n+1}\right)\left[A\left(x_{n+1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
+8h^{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & g\left(x_{n+1},y_{n+1}\right)\left[A\left(x_{n+1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
  &  & -g\left(x_{n+1},y_{n}\right)\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
  &  & -g\left(x_{n},y_{n+1}\right)\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
  &  & -g\left(x_{n-1},y_{n+1}\right)\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
@@ -854,7 +854,7 @@ To approximate the cross-derivative
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
-\frac{4h^{2}}{2}\left\{ \partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & g\left(x_{n-1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n-1},y_{n}\right)\right]\nonumber \\
+8h^{2}\left\{ \partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & g\left(x_{n-1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n-1},y_{n}\right)\right]\nonumber \\
  &  & +g\left(x_{n+1},y_{n}\right)\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
  &  & +g\left(x_{n},y_{n+1}\right)\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
  &  & -g\left(x_{n+1},y_{n-1}\right)\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]\nonumber \\
@@ -871,7 +871,7 @@ To approximate the cross-derivative
 \begin_layout Standard
 \begin_inset Formula 
 \begin{eqnarray}
- & h^{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]+\partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & =\nonumber \\
+ & 16h^{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]+\partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & =\nonumber \\
  & +g\left(x_{n+1},y_{n+1}\right)\left[A\left(x_{n+1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
  & +g\left(x_{n-1},y_{n-1}\right)\left[A\left(x_{n},y_{n-1}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n-1},y_{n}\right)\right]\nonumber \\
  & -g\left(x_{n-1},y_{n+1}\right)\left[A\left(x_{n-1},y_{n}\right)+2A\left(x_{n},y_{n}\right)+A\left(x_{n},y_{n+1}\right)\right]\nonumber \\
@@ -888,7 +888,7 @@ Models
 \end_layout
 
 \begin_layout Subsection
-Quantum well
+Quantum well - 6x6
 \end_layout
 
 \begin_layout Standard
@@ -1063,7 +1063,7 @@ R\left(z_{n}\right) & = & -\sqrt{3}\left[\gamma_{2}\left(k_{x}^{2}-k_{y}^{2}\rig
 \end_layout
 
 \begin_layout Subsection
-Quantum wire
+Quantum wire - 6x6
 \end_layout
 
 \begin_layout Standard
@@ -1099,6 +1099,133 @@ S^{*}\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{3}\left(\partial_{x}+
 R\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{2}\left(\partial_{x}^{2}-\partial_{y}^{2}\right)-i\tilde{\gamma}_{3}\partial_{x}\partial_{y}\right]\nonumber \\
 R^{*}\left(x_{n},y_{n}\right) & = & 2\sqrt{3}\left[\gamma_{2}\left(\partial_{x}^{2}-\partial_{y}^{2}\right)+i\tilde{\gamma}_{3}\partial_{x}\partial_{y}\right]\nonumber \\
 E_{C}\left(x_{n},y_{n}\right) & = & E_{g}+A\left(\partial_{x}^{2}+\partial_{y}^{2}+k_{z}^{2}\right)
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+SXYZ basis
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\phantom{0}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Consider the basis 
+\begin_inset Formula $\left\{ S,X,Y,Z\right\} $
+\end_inset
+
+, then the k.p hamiltonian can be written as
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+H^{4x4}\left(\vec{k}\right)=\left(\begin{array}{cccc}
+E_{g}+\stackrel[i=1]{3}{\sum}k_{i}A_{c}k_{i} & iPk_{x} & iPk_{y} & iPk_{z}\\
+-ik_{x}P\\
+-ik_{y}P &  & H_{vv}\\
+-ik_{z}P
+\end{array}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+H_{vv}\left(\vec{k}\right)=\left(\begin{array}{ccc}
+k_{x}Lk_{x}+k_{y}Mk_{y}+k_{z}Mk_{z}-\frac{\Delta}{3} & k_{x}Nk_{y} & k_{x}Nk_{z}\\
+k_{y}Nk_{x} & k_{y}Lk_{y}+k_{z}Mk_{z}+k_{x}Mk_{x}-\frac{\Delta}{3} & k_{y}Nk_{z}\\
+k_{z}Nk_{x} & k_{z}Nk_{y} & k_{z}Lk_{z}+k_{x}Mk_{x}+k_{y}Mk_{y}-\frac{\Delta}{3}
+\end{array}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+H_{\Delta}=\frac{\Delta}{3}\left(\begin{array}{cccccccc}
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & -i & 0 & 0 & 0 & 0 & 1\\
+0 & i & 0 & 0 & 0 & 0 & 0 & -i\\
+0 & 0 & 0 & 0 & 0 & -1 & i & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & -1 & 0 & 0 & i & 0\\
+0 & 0 & 0 & -i & 0 & -i & 0 & 0\\
+0 & 1 & i & 0 & 0 & 0 & 0 & 0
+\end{array}\right)
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+H_{kp}=\frac{\Delta}{3}\left(\begin{array}{cccccccc}
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & -i & 0 & 0 & 0 & 0 & 1\\
+0 & i & 0 & 0 & 0 & 0 & 0 & -i\\
+0 & 0 & 0 & 0 & 0 & -1 & i & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & -1 & 0 & 0 & i & 0\\
+0 & 0 & 0 & -i & 0 & -i & 0 & 0\\
+0 & 1 & i & 0 & 0 & 0 & 0 & 0
+\end{array}\right)+\left(\begin{array}{cccccccc}
+E_{g}+\stackrel[i=1]{3}{\sum}k_{i}A_{c}k_{i} & iPk_{x} & iPk_{y} & iPk_{z}\\
+-ik_{x}P\\
+-ik_{y}P &  & H_{vv}\\
+-ik_{z}P\\
+ &  &  &  & E_{g}+\stackrel[i=1]{3}{\sum}k_{i}A_{c}k_{i} & iPk_{x} & iPk_{y} & iPk_{z}\\
+ &  &  &  & -ik_{x}P\\
+ &  &  &  & -ik_{y}P &  & H_{vv}\\
+ &  &  &  & -ik_{z}P
+\end{array}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+8h^{2}\left\{ \partial_{x}^{+}\left[A(y_{n})\partial_{y}\right]+\partial_{x}^{-}\left[A(y_{n})\partial_{y}\right]\right\} g\left(x_{n},y_{n}\right) & = & \left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n+1},y_{n+1}\right)\nonumber \\
+ &  & -\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n+1},y_{n-1}\right)\nonumber \\
+ &  & -\left[A\left(x_{n},y_{n+1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n-1},y_{n+1}\right)\nonumber \\
+ &  & +\left[A\left(x_{n},y_{n-1}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n-1},y_{n-1}\right)
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+8h^{2}\left\{ \partial_{y}^{+}\left[A(x_{n})\partial_{x}\right]+\partial_{y}^{-}\left[A(x_{n})\partial_{x}\right]\right\} g\left(x_{n},y_{n}\right) & = & \left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n+1},y_{n+1}\right)\nonumber \\
+ &  & -\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n-1},y_{n+1}\right)\nonumber \\
+ &  & -\left[A\left(x_{n+1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n+1},y_{n-1}\right)\nonumber \\
+ &  & +\left[A\left(x_{n-1},y_{n}\right)+A\left(x_{n},y_{n}\right)\right]g\left(x_{n-1},y_{n-1}\right)
 \end{eqnarray}
 
 \end_inset
