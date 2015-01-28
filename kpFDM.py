@@ -167,14 +167,14 @@ class Potential(object):
 
           plt.show()
       if params['model'] == 'ZB6x6':
-        plt.plot(params['x']*UniConst.A0,self.pot[0,:])
-        plt.plot(params['x']*UniConst.A0,self.pot[1,:])
-        plt.plot(params['x']*UniConst.A0,self.pot[2,:])
+        plt.plot(params['x'],self.pot[0,:])
+        plt.plot(params['x'],self.pot[1,:])
+        plt.plot(params['x'],self.pot[2,:])
         plt.show()
       if params['model'] == 'ZB8x8':
-        plt.plot(params['x']*UniConst.A0,self.pot[0,:])
-        plt.plot(params['x']*UniConst.A0,self.pot[1,:])
-        plt.plot(params['x']*UniConst.A0,self.pot[1,:]+self.pot[2,:])
+        plt.plot(params['x'],self.pot[0,:])
+        plt.plot(params['x'],self.pot[1,:])
+        plt.plot(params['x'],self.pot[1,:]+self.pot[2,:])
         plt.show()
 
 class IO(object):
@@ -302,6 +302,11 @@ class IO(object):
                                   type=float, nargs='+', help="""
                                   Interband coupling parameter
                                   """)
+                                  
+        self.parser.add_argument('-p0', action='store', dest='p0',
+                                  type=float, nargs='+', help="""
+                                  Interband coupling parameter
+                                  """)
 
         self.args = self.parser.parse_args()
 
@@ -328,8 +333,8 @@ class IO(object):
             assert len(self.args.gamma3) == self.args.nmat
             assert len(self.args.deltaSO) == self.args.nmat
 
-        if self.args.model in ['ZB8x8']:
-          assert len(self.args.ep) == self.args.nmat
+        #if self.args.model in ['ZB8x8']:
+        #  assert len(self.args.ep) == self.args.nmat
 
         if self.args.model in ['ZB2x2', 'ZB6x6', 'ZB8x8']:
             assert len(self.args.gap) == self.args.nmat
@@ -366,6 +371,7 @@ class IO(object):
         self.parameters['gamma3'] = self.args.gamma3
         self.parameters['deltaSO'] = self.args.deltaSO
         self.parameters['Ep'] = self.args.ep
+        self.parameters['P0'] = self.args.p0
 
         self.parameters['latpar'] = self.args.latpar
         self.parameters['npoints'] = self.args.npoints
@@ -377,8 +383,8 @@ class IO(object):
 
         # Secondary parameters
 
-        self.parameters['Len'] = self.parameters['endPos'][0] - self.parameters['startPos'][0]
-        self.parameters['Enorm'] = self.const.hsqrO2m0/(self.const.A0**2)
+        #self.parameters['Len'] = self.parameters['endPos'][0] - self.parameters['startPos'][0]
+        #self.parameters['Enorm'] = self.const.hsqrO2m0/(self.const.A0**2)
 
         if (self.parameters['endPos'][0]-self.parameters['startPos'][0])%self.parameters['step'] != 0:
           sys.exit("Discretization interval isnt divisible by total size, try another")
@@ -390,6 +396,7 @@ class IO(object):
             self.parameters['x'] /= self.const.A0
         else:
             print 'Not implemented yet x'
+
 
         # Converting startPos and endPos to vector index
 
@@ -407,7 +414,8 @@ class IO(object):
         self.parameters['endPos'] = [int(x) for x in endPos]
 
         # dimensionalization
-        self.parameters['step'] /= self.const.A0
+        
+        #self.parameters['step'] /= self.const.A0
         if self.args.model in ['ZB2x2']:
           self.parameters['elecmassParam'] = [self.const.eVAA2/x for x in self.parameters['elecmass']]
         if self.args.model in ['ZB6x6']:
@@ -425,11 +433,12 @@ class IO(object):
             self.parameters['elecmassParam'] = [1./w - ((y+(2./3.)*z)/(y+z))*x for (x,y,z,w) in zip(EpOEg,self.parameters['gap'],self.parameters['deltaSO'],self.parameters['elecmass'])]
             self.parameters['elecmassParam'] = [self.const.eVAA2*x for x in self.parameters['elecmassParam']]
           else:
-            self.parameters['P0'] = [0 for x in self.parameters['gamma1']]
+            #self.parameters['P0'] = [0 for x in self.parameters['gamma1']]
             self.parameters['gamma1'] = [self.const.eVAA2*x for x in self.parameters['gamma1']]
             self.parameters['gamma2'] = [self.const.eVAA2*x for x in self.parameters['gamma2']]
             self.parameters['gamma3'] = [self.const.eVAA2*x for x in self.parameters['gamma3']]
-            self.parameters['elecmassParam'] = [self.const.eVAA2/x for x in self.parameters['elecmass']]
+            self.parameters['elecmassParam'] = [self.const.eVAA2*x for x in self.parameters['elecmass']]
+            self.parameters['P0'] = [x for x in self.const.p0]
             
           self.parameters['Ll'] = [-(x+4.*y) for (x,y) in zip(self.parameters['gamma1'],self.parameters['gamma2'])]
           self.parameters['Mm'] = [-(x-2.*y) for (x,y) in zip(self.parameters['gamma1'],self.parameters['gamma2'])]
@@ -449,7 +458,8 @@ class ZincBlend(object):
 
 
       if params['dimen'] == 1:
-        self.directbasis = np.array([params['latpar']/self.const.A0, params['latpar']/self.const.A0, 1. ])
+        #self.directbasis = np.array([params['latpar']/self.const.A0, params['latpar']/self.const.A0, 1. ])
+        self.directbasis = np.array([params['latpar'], params['latpar'], 1. ])
       else:
         if params['dimen'] == 2:
           self.directbasis = np.array([ 1., 1., params['latpar']/self.const.A0])
@@ -457,12 +467,13 @@ class ZincBlend(object):
             print 'Not implemented yet basis'
 
       # set Bravais basis in reciprocal space
-      self.reciprocalbasis = 2.*np.pi/self.directbasis
-
+      #self.reciprocalbasis = 2.*np.pi/self.directbasis
+      self.reciprocalbasis = np.pi/self.directbasis
+      
       if params['dimen'] == 1:
         if params['direction'] == 'kx':
             kxlim = self.reciprocalbasis[0]*params['percentage']/100
-            self.kmesh = np.linspace(0,kxlim,params['npoints'])
+            self.kmesh = np.linspace(-kxlim,kxlim,2*params['npoints']+1)
         if params['direction'] == 'ky':
             kylim = self.reciprocalbasis[1]*params['percentage']/100
             self.kmesh = np.linspace(0,kylim,params['npoints'])
@@ -485,7 +496,7 @@ class ZBHamilton(ZincBlend):
       self.potHet = potHet
       self.Kin = Kin
       self.step = params['step']
-      self.der = derivate(params['N'])
+      self.der = derivateCoefs(params['N']-2)
 
     def buildHam2x2(self, params, kpoints):
       
@@ -578,6 +589,7 @@ class ZBHamilton(ZincBlend):
         T      = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
         S      = lil_matrix((self.N-2,self.N-2), dtype=np.complex128)
         SC     = lil_matrix((self.N-2,self.N-2), dtype=np.complex128)
+        Saux     = lil_matrix((self.N-2,self.N-2), dtype=np.complex128)
         R      = lil_matrix((self.N-2,self.N-2), dtype=np.complex128)
         RC     = lil_matrix((self.N-2,self.N-2), dtype=np.complex128)
         ZERO   = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
@@ -589,7 +601,24 @@ class ZBHamilton(ZincBlend):
         gamma2.setdiag(self.Kin[1,1:self.N-1],0)
         gamma3.setdiag(self.Kin[2,1:self.N-1],0)
 
+
         # Q
+        
+        aux = self.Kin[0,1:self.N-1] - 2.*self.Kin[1,1:self.N-1]
+        auxfw = np.dot(self.der.forward(),aux)
+        auxbw = np.dot(self.der.backward(),aux)
+        auxct = np.dot(self.der.central(),aux)
+        
+        Q.setdiag(auxct,0)
+        Q.setdiag(-auxfw[0:self.N-3],1)
+        Q.setdiag(-auxfw[self.N-4],self.N-3)
+        Q.setdiag(-auxbw[1:self.N-2],-1)
+        Q.setdiag(-auxbw[0],-self.N+3)
+        Q *= (1./(2.*self.step**2))
+        Q += ( (gamma1+gamma2)*(kx**2 + ky**2) )
+        Q *= -1
+        
+        """
         nonlocal_diag = np.convolve(self.Kin[0,:] - 2.*self.Kin[1,:],[1,2,1],'valid')
         nonlocal_off = np.convolve(self.Kin[0,:] - 2.*self.Kin[1,:],[1,1],'same')[1:self.N-1]
 
@@ -599,10 +628,27 @@ class ZBHamilton(ZincBlend):
         Q *= (1./(2.*self.step**2))
         Q += ( (gamma1+gamma2)*(kx**2 + ky**2) )
         Q *= -1.
+        """
 
         #np.savetxt('Q.dat',Q.todense())
 
         # T
+        
+        aux = self.Kin[0,1:self.N-1] + 2.*self.Kin[1,1:self.N-1]
+        auxfw = np.dot(self.der.forward(),aux)
+        auxbw = np.dot(self.der.backward(),aux)
+        auxct = np.dot(self.der.central(),aux)
+        
+        T.setdiag(auxct,0)
+        T.setdiag(-auxfw[0:self.N-3],1)
+        T.setdiag(-auxfw[self.N-4],self.N-3)
+        T.setdiag(-auxbw[1:self.N-2],-1)
+        T.setdiag(-auxbw[0],-self.N+3)
+        T *= (1./(2.*self.step**2))
+        T += ( (gamma1-gamma2)*(kx**2 + ky**2) )
+        T *= -1
+        
+        """
         nonlocal_diag = np.convolve(self.Kin[0,:] + 2.*self.Kin[1,:],[1,2,1],'valid')
         nonlocal_off = np.convolve(self.Kin[0,:] + 2.*self.Kin[1,:],[1,1],'same')[1:self.N-1]
 
@@ -612,10 +658,37 @@ class ZBHamilton(ZincBlend):
         T *= (1./(2.*self.step**2))
         T += ( (gamma1-gamma2)*(kx**2 + ky**2) )
         T *= -1.
+        """
 
         #np.savetxt('T.dat',T.todense())
 
+
         # S
+        
+        aux = np.dot(self.der.backward(),self.Kin[2,1:self.N-1])
+        aux1 = np.dot(self.der.forward(),self.Kin[2,1:self.N-1])
+        
+        S.setdiag(-aux,0)
+        S.setdiag(aux[0], -self.N+3)
+        S.setdiag(aux,1)
+        S*=(1./(4.*self.step))
+        S -= S.transpose()
+        
+        SC.setdiag(-aux1,0)
+        SC.setdiag(aux1[self.N-4], self.N-3)
+        SC.setdiag(aux1,-1)
+        SC*=(1./(4.*self.step))
+        SC -= SC.transpose()
+        
+        
+        S*=2.*np.sqrt(3.)*complex(kx,ky)
+        SC*=2.*np.sqrt(3.)*complex(kx,-ky)
+        
+        #np.savetxt('S.dat',S.todense())
+        #np.savetxt('SC.dat',SC.todense())
+        #sys.exit()
+        
+        """
         nonlocal_off = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'same')[1:self.N-1]
 
         S.setdiag(-nonlocal_off,1)
@@ -624,12 +697,16 @@ class ZBHamilton(ZincBlend):
         SC.setdiag(-nonlocal_off,1)
         SC.setdiag(nonlocal_off,-1)
         SC*=2.*np.sqrt(3.)*complex(kx,-ky)
+        S *= -1
+        SC *= -1
+        """
 
         #np.savetxt('S.dat',S.todense())
+        #sys.exit()
 
         # R
-        R = -2.*np.sqrt(3.)*(gamma2*(kx**2 - ky**2)-complex(0,1.)*gamma3*kx*ky)
-        RC = -2.*np.sqrt(3.)*(gamma2*(kx**2 - ky**2)+complex(0,1.)*gamma3*kx*ky)
+        R = -np.sqrt(3.)*(gamma2*(kx**2 - ky**2)-2.*complex(0,1.)*gamma3*kx*ky)
+        RC = -np.sqrt(3.)*(gamma2*(kx**2 - ky**2)+2.*complex(0,1.)*gamma3*kx*ky)
 
         #np.savetxt('R.dat',R.todense())
 
@@ -680,7 +757,7 @@ class ZBHamilton(ZincBlend):
         HT += kron(IU*rqs2*(Q-T)    ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,1,0,0,0]], format='lil')
         HT += kron(IU*rqs2*S        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0]], format='lil')
         HT += kron(ZERO             ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0]], format='lil')
-        HT += kron(.5*(Q+T)        ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
+        HT += kron(.5*(Q+T)         ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
 
         HT += kron(diags(self.potHet[0,1:self.N-1],0) ,[[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(diags(self.potHet[1,1:self.N-1],0) ,[[0,0,0,0,0,0],[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
@@ -699,8 +776,15 @@ class ZBHamilton(ZincBlend):
         del gamma1
         del gamma2
         del gamma3
-        del nonlocal_diag
-        del nonlocal_off
+        #del nonlocal_diag
+        #del nonlocal_off
+        """
+        del aux
+        del aux1
+        del auxfw
+        del auxbw
+        del auxct
+        """
 
       if params['dimen'] == 2:
 
@@ -974,29 +1058,29 @@ class ZBHamilton(ZincBlend):
                    
         #--------------------------------
         
-        #aux = self.Kin[0,1:self.N-1]*ksquare + (1./(2.*self.step**2))*np.convolve(self.Kin[0,:],[1,2,1],'valid')        
-        aux = (1./(2.*self.step**2))*np.dot(self.der.backward(),np.dot(self.der.forward(),self.Kin[0,:]))[1:self.N-1]
-        aux += self.Kin[0,1:self.N-1]*ksquare
+        aux = self.Kin[0,1:self.N-1]*ksquare + (1./(2.*self.step**2))*np.convolve(self.Kin[0,:],[1,2,1],'valid')        
+        #aux = (1./(2.*self.step**2))*np.dot(self.der.backward(),np.dot(self.der.forward(),self.Kin[0,:]))[1:self.N-1]
+        #aux += self.Kin[0,1:self.N-1]*ksquare
         
-        #aux1 = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:],[1,1],'same')[1:self.N-1]        
+        aux1 = (1./(2.*self.step**2))*np.convolve(self.Kin[0,:],[1,1],'same')[1:self.N-1]        
               
-        aux1 = (1./(2.*self.step**2))*np.dot(self.der.forward(),self.Kin[0,:])[1:self.N-1]
-        aux2 = (1./(2.*self.step**2))*np.dot(self.der.backward(),self.Kin[0,:])[1:self.N-1] 
+        #aux1 = (1./(2.*self.step**2))*np.dot(self.der.forward(),self.Kin[0,:])[1:self.N-1]
+        #aux2 = (1./(2.*self.step**2))*np.dot(self.der.backward(),self.Kin[0,:])[1:self.N-1] 
         
         cond.setdiag(aux,0)
         cond.setdiag(-aux1,1)
-        cond.setdiag(-aux2,-1)
+        cond.setdiag(-aux1,-1)
         
  
         #---------------------------------
                 
-        #aux = (1./(4.*self.step))*np.convolve(self.Kin[4,:],[1,1],'same')[1:self.N-1]
+        aux = (1./(4.*self.step))*np.convolve(self.Kin[4,:],[1,1],'same')[1:self.N-1]
         
-        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[4,:])[1:self.N-1]
-        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[4,:])[1:self.N-1] 
+        #aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[4,:])[1:self.N-1]
+        #aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[4,:])[1:self.N-1] 
         
-        Pz.setdiag(IU*aux1,1)
-        Pz.setdiag(-IU*aux2,-1)
+        Pz.setdiag(IU*aux,1)
+        Pz.setdiag(-IU*aux,-1)
         
         Px = IU*self.Kin[4,1:self.N-1]*kx
         Py = IU*self.Kin[4,1:self.N-1]*ky
@@ -1005,40 +1089,39 @@ class ZBHamilton(ZincBlend):
         
         Lx = self.Kin[1,1:self.N-1]*(kx**2)
         Ly = self.Kin[1,1:self.N-1]*(ky**2)
-        #aux = (1./(4.*self.step))*np.convolve(self.Kin[1,:],[1,1],'same')[1:self.N-1]
-        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[1,:])[1:self.N-1]
-        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[1,:])[1:self.N-1] 
-        Lz.setdiag(aux1,1)
-        Lz.setdiag(-aux2,-1)
+        aux = (1./(4.*self.step))*np.convolve(self.Kin[1,:],[1,1],'same')[1:self.N-1]
+        #aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[1,:])[1:self.N-1]
+        #aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[1,:])[1:self.N-1] 
+        Lz.setdiag(aux,1)
+        Lz.setdiag(-aux,-1)
         
         Mx = self.Kin[2,1:self.N-1]*(kx**2)
         My = self.Kin[2,1:self.N-1]*(ky**2)
-        #aux = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'same')[1:self.N-1]
-        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[2,:])[1:self.N-1]
-        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[2,:])[1:self.N-1] 
-        Mz.setdiag(aux1,1)
-        Mz.setdiag(-aux2,-1)
+        aux = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'same')[1:self.N-1]
+        #aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[2,:])[1:self.N-1]
+        #aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[2,:])[1:self.N-1] 
+        Mz.setdiag(aux,1)
+        Mz.setdiag(-aux,-1)
         
         Nx = self.Kin[3,1:self.N-1]*(kx**2)
         Ny = self.Kin[3,1:self.N-1]*(ky**2)
         Nxy = self.Kin[3,1:self.N-1]*(kx*ky)
-        #aux = (1./(4.*self.step))*np.convolve(self.Kin[3,:],[1,1],'same')[1:self.N-1]
-        aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[3,:])[1:self.N-1]
-        aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[3,:])[1:self.N-1] 
-        Nxz.setdiag(kx*aux1,1)
-        Nxz.setdiag(-kx*aux2,-1)
-        Nyz.setdiag(ky*aux1,1)
-        Nyz.setdiag(-ky*aux2,-1)
+        aux = (1./(4.*self.step))*np.convolve(self.Kin[3,:],[1,1],'same')[1:self.N-1]
+        #aux1 = (1./(4.*self.step))*np.dot(self.der.forward(),self.Kin[3,:])[1:self.N-1]
+        #aux2 = (1./(4.*self.step))*np.dot(self.der.backward(),self.Kin[3,:])[1:self.N-1] 
+        Nxz.setdiag(kx*aux,1)
+        Nxz.setdiag(-kx*aux,-1)
+        Nyz.setdiag(ky*aux,1)
+        Nyz.setdiag(-ky*aux,-1)
         
         #-----------------------------------
-        
         
         Hkp = bmat([[cond        , diags(Px,0)      , diags(Py,0)      , Pz               ],
                     [diags(-Px,0), diags(Lx+My,0)+Mz, diags(Nxy,0)     , Nxz              ],
                     [diags(-Py,0), diags(Nxy,0)     , diags(Ly+Mx,0)+Mz, Nyz              ],
                     [-Pz         , Nxz              , Nyz              , Lz+diags(Mx+My,0)]]
                   )
-        
+                  
         
         HT = bmat([[Hkp, None],[None, Hkp]], format='lil')
         HT += diags(H0,0)
@@ -1088,10 +1171,10 @@ class ZBHamilton(ZincBlend):
 
       
       if params['model'] == 'ZB6x6':
-        va = np.zeros(int(params['npoints'])*int(params['numvb'])).reshape((int(params['numvb']),int(params['npoints'])))
+        va = np.zeros(int(2*params['npoints']+1)*int(params['numvb'])).reshape((int(params['numvb']),int(2*params['npoints']+1)))
 
         if params['dimen'] == 1:
-          ve = np.zeros(int(params['npoints'])*int(params['numvb'])*6*(int(params['N']-2))).reshape((6*(int(params['N']-2)),int(params['numvb']),int(params['npoints'])))
+          ve = np.zeros(int(2*params['npoints']+1)*int(params['numvb'])*6*(int(params['N']-2))).reshape((6*(int(params['N']-2)),int(params['numvb']),int(2*params['npoints']+1)))
           #X = np.zeros(int(params['numvb'])*6*int(params['N']-2)).reshape((6*int(params['N']-2),int(params['numvb'])))
           #X = rand(6*int(params['N']-2),int(params['numvb']))
           
@@ -1108,7 +1191,7 @@ class ZBHamilton(ZincBlend):
         if params['dimen'] == 1:
           ve = np.zeros(int(params['npoints'])*inum*8*int(params['N']-2)).reshape((8*int(params['N']-2),inum,int(params['npoints'])))
 
-      for i in range(int(params['npoints'])):
+      for i in range(int(2*params['npoints']+1)):
 
         if params['direction'] == 'kx':
           kpoints = np.array([self.kmesh[i],0,0])
@@ -1117,7 +1200,7 @@ class ZBHamilton(ZincBlend):
         if params['direction'] == 'kz':
           kpoints = np.array([0,0,self.kmesh[i]])
 
-        print "Solving k = ",kpoints/self.const.A0
+        print "Solving k = ",kpoints
 
         HT = self.buildHam(params,kpoints)
         #HT /= params['Enorm']
@@ -1127,9 +1210,9 @@ class ZBHamilton(ZincBlend):
           #va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=1, maxiter=400)
 
         if params['model'] == 'ZB6x6':
-          #va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
+          va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
           #va[:,i], ve[:,:,i] = eigvalsh(HT.todense(), b=None, overwrite_a=True, eigvals=(0,int(params['numvb'])), check_finite=False)
-          va[:,i] = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
+          #va[:,i] = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
           #va[:,i], ve[:,:,i] = lobpcg(HT,X,largest=True,tol=1e-5,verbosityLevel=1, maxiter=400)
           #va[:,i] = eigs(HT, int(params['numvb']), ncv = 3*int(params['numvb']), which='SM', tol=1e-5, return_eigenvectors=False, maxiter=400)
         if params['model'] == 'ZB8x8':
@@ -1139,9 +1222,9 @@ class ZBHamilton(ZincBlend):
 
       return self.kmesh, va, ve
 
-class derivate(object):
+class derivateCoefs(object):
   
-    def __init__(self, size, derType=''):
+    def __init__(self, size):
       """
       """
       self.size = size      
@@ -1168,10 +1251,14 @@ class derivate(object):
       c[1] = 1
       return toeplitz(r,c).T
     
+    
     def central(self):
-      """ returns a toeplitz matrix
-       for central differences
-      """
+      
+      return self.forward()+self.backward()
+    
+    """
+    def central(self):
+      
       r = np.zeros(self.size)
       c = np.zeros(self.size)
       r[1] = .5
@@ -1179,8 +1266,7 @@ class derivate(object):
       c[1] = -.5
       c[self.size-1] = .5
       return toeplitz(r,c).T
-  
-  
+    """
 
 #===============================================
 
@@ -1199,7 +1285,7 @@ pothet = P.buildPot(ioObject.parameters,'het')
 K = Potential(ioObject.parameters)
 kin = K.buildPot(ioObject.parameters,'kin')
 
-P.plotPot(ioObject.parameters)
+#P.plotPot(ioObject.parameters)
 #K.plotPot(ioObject.parameters)
 #sys.exit()
 
@@ -1262,13 +1348,15 @@ if ioObject.parameters['model'] == 'ZB2x2':
 
 if ioObject.parameters['model'] == 'ZB6x6':
 
-  #va = np.sort(va, axis=0)
+  va = np.sort(va, axis=0)
 
   fig = plt.figure()
-  for i in range(int(ioObject.parameters['N']-2)):
-    plt.plot(k/UniConst.A0, va[i,:])#*ioObject.parameters['Enorm'])
+  for i in range(int(ioObject.parameters['numvb'])):
+    plt.plot(k, va[i,:])#*ioObject.parameters['Enorm'])
     #plt.plot(-k/UniConst.A0, va[i,:]*ioObject.parameters['Enorm'])
   plt.show()
+
+
 
 if ioObject.parameters['model'] == 'ZB8x8':
 
