@@ -509,25 +509,41 @@ class ZBHamilton(ZincBlend):
 
       if params['dimen'] == 1:
 
-        HT = csr_matrix((self.N,self.N), dtype=np.float64)
+        HT = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
 
-        A = diags(self.Kin,0)
+        A = diags(self.Kin[1:self.N-1],0)
 
         ksquare = kx**2 + ky**2
 
         # derivatives related terms
-        nonlocal_diag = np.convolve(self.Kin,[1,2,1],'same')
-        nonlocal_off = np.convolve(self.Kin,[1,1],'valid')
-        nonlocal = (1./(2.*(self.step**2)))*(diags(nonlocal_diag,0) - diags(nonlocal_off,1) - diags(nonlocal_off,-1))
+        
+        aux = self.Kin[1:self.N-1]
+        auxfw = np.dot(self.der.forward(),aux)
+        auxbw = np.dot(self.der.backward(),aux)
+        auxct = np.dot(self.der.central(),aux)
+        
+        HT.setdiag(auxct,0)
+        HT.setdiag(-auxfw[0:self.N-3],1)
+        HT.setdiag(-auxfw[self.N-4],self.N-3)
+        HT.setdiag(-auxbw[1:self.N-2],-1)
+        HT.setdiag(-auxbw[0],-self.N+3)
+        HT *= (1./(2.*self.step**2))
+        #HT *= -1
+        HT += A*ksquare + diags(self.potHet[1:self.N-1],0)
 
-        HT = nonlocal + A*ksquare + diags(self.potHet,0)
+        
+        #nonlocal_diag = np.convolve(self.Kin,[1,2,1],'same')
+        #nonlocal_off = np.convolve(self.Kin,[1,1],'valid')
+        #nonlocal = (1./(2.*(self.step**2)))*(diags(nonlocal_diag,0) - diags(nonlocal_off,1) - diags(nonlocal_off,-1))
+
+        #HT = nonlocal + A*ksquare + diags(self.potHet,0)
         
         #np.savetxt('HT.dat',HT.todense())
 
-        del nonlocal_diag
-        del nonlocal_off
-        del nonlocal
-        del A
+        #del nonlocal_diag
+        #del nonlocal_off
+        #del nonlocal
+        #del A
 
       if params['dimen'] == 2:
 
@@ -1157,10 +1173,10 @@ class ZBHamilton(ZincBlend):
       """
 
       if params['model'] == 'ZB2x2':
-        va = np.zeros(int(params['npoints'])*int(params['numcb'])).reshape((int(params['numcb']),int(params['npoints'])))
+        va = np.zeros(int(2*params['npoints']+1)*int(params['numcb'])).reshape((int(params['numcb']),int(2*params['npoints']+1)))
 
         if params['dimen'] == 1:
-          ve = np.zeros(int(params['npoints'])*int(params['numcb'])*int(params['N'])).reshape((int(params['N']),int(params['numcb']),int(params['npoints'])))
+          ve = np.zeros(int(2*params['npoints']+1)*int(params['numcb'])*int(params['N']-2)).reshape((int(params['N']-2),int(params['numcb']),int(2*params['npoints']+1)))
           X = np.zeros(int(params['numcb'])*int(params['N'])).reshape((int(params['N']),int(params['numcb'])))
           X = rand(int(params['N']),int(params['numcb']))
 
@@ -1299,9 +1315,11 @@ print va#*ioObject.parameters['Enorm']
 
 if ioObject.parameters['model'] == 'ZB2x2':
 
+  va = np.sort(va, axis=0)
+
   fig = plt.figure()
   for i in range(ioObject.parameters['numcb']):
-    plt.plot(k/UniConst.A0, va[i,:])
+    plt.plot(k, va[i,:])
   plt.show()
 
 """
