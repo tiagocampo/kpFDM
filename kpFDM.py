@@ -308,6 +308,19 @@ class IO(object):
                                   Interband coupling parameter
                                   """)
 
+        self.parser.add_argument('-lobpcg', '--LOBPCG', action='store', dest='lobpcg',
+                                  type=int, choices=[0, 1], default=0, help="""
+                                  1 uses lobpcg - not fully tested
+                                  0 uses default sparse solver - best choice
+                                  """)
+
+        self.parser.add_argument('-full', '--FULL', action='store', dest='full',
+                                  type=int, choices=[0, 1], default=0, help="""
+                                  1 compute all eigenvalues and eigenvectors
+                                  0 compute desired number according to numcb + numvb
+                                  """)
+
+
         self.args = self.parser.parse_args()
 
         self.verification()
@@ -349,6 +362,7 @@ class IO(object):
         else:
           assert self.args.direction in ['kz']
 
+
     def buildParamDict(self):
         """
         """
@@ -379,6 +393,9 @@ class IO(object):
         self.parameters['bshift'] = self.args.shift
         self.parameters['numcb'] = self.args.numcb
         self.parameters['numvb'] = self.args.numvb
+
+        self.parameters['lobpcg'] = self.args.lobpcg
+        self.parameters['full'] = self.args.full
 
 
         # Secondary parameters
@@ -509,41 +526,32 @@ class ZBHamilton(ZincBlend):
 
       if params['dimen'] == 1:
 
-        HT = lil_matrix((self.N-2,self.N-2), dtype=np.float64)
+        HT = lil_matrix((2*(self.N-2),2*(self.N-2)), dtype=np.float64)
 
-        A = diags(self.Kin[1:self.N-1],0)
+        cond = lil_matrix(((self.N-2),(self.N-2)), dtype=np.float64)
 
         ksquare = kx**2 + ky**2
-
-        # derivatives related terms
         
         aux = self.Kin[1:self.N-1]
         auxfw = np.dot(self.der.forward(),aux)
         auxbw = np.dot(self.der.backward(),aux)
         auxct = np.dot(self.der.central(),aux)
         
-        HT.setdiag(auxct,0)
-        HT.setdiag(-auxfw[0:self.N-3],1)
-        HT.setdiag(-auxfw[self.N-4],self.N-3)
-        HT.setdiag(-auxbw[1:self.N-2],-1)
-        HT.setdiag(-auxbw[0],-self.N+3)
-        HT *= (1./(2.*self.step**2))
-        #HT *= -1
-        HT += A*ksquare + diags(self.potHet[1:self.N-1],0)
+        cond.setdiag(auxct,0)
+        cond.setdiag(-auxfw[0:self.N-3],1)
+        cond.setdiag(-auxfw[self.N-4],self.N-3)
+        cond.setdiag(-auxbw[1:self.N-2],-1)
+        cond.setdiag(-auxbw[0],-self.N+3)
+        cond *= (1./(2.*self.step**2))
+        cond += diags(self.Kin[1:self.N-1],0)*ksquare + diags(self.potHet[1:self.N-1],0)
 
-        
-        #nonlocal_diag = np.convolve(self.Kin,[1,2,1],'same')
-        #nonlocal_off = np.convolve(self.Kin,[1,1],'valid')
-        #nonlocal = (1./(2.*(self.step**2)))*(diags(nonlocal_diag,0) - diags(nonlocal_off,1) - diags(nonlocal_off,-1))
-
-        #HT = nonlocal + A*ksquare + diags(self.potHet,0)
-        
-        #np.savetxt('HT.dat',HT.todense())
-
-        #del nonlocal_diag
-        #del nonlocal_off
-        #del nonlocal
-        #del A
+        HT += kron(cond ,[[1,0],[0,0]], format='lil')
+        HT += kron(cond ,[[0,0],[0,1]], format='lil')
+  
+        del aux
+        del auxfw
+        del auxbw
+        del auxct
 
       if params['dimen'] == 2:
 
@@ -633,18 +641,6 @@ class ZBHamilton(ZincBlend):
         Q *= (1./(2.*self.step**2))
         Q += ( (gamma1+gamma2)*(kx**2 + ky**2) )
         Q *= -1
-        
-        """
-        nonlocal_diag = np.convolve(self.Kin[0,:] - 2.*self.Kin[1,:],[1,2,1],'valid')
-        nonlocal_off = np.convolve(self.Kin[0,:] - 2.*self.Kin[1,:],[1,1],'same')[1:self.N-1]
-
-        Q.setdiag(nonlocal_diag,0)
-        Q.setdiag(-nonlocal_off,1)
-        Q.setdiag(-nonlocal_off,-1)
-        Q *= (1./(2.*self.step**2))
-        Q += ( (gamma1+gamma2)*(kx**2 + ky**2) )
-        Q *= -1.
-        """
 
         #np.savetxt('Q.dat',Q.todense())
 
@@ -663,27 +659,14 @@ class ZBHamilton(ZincBlend):
         T *= (1./(2.*self.step**2))
         T += ( (gamma1-gamma2)*(kx**2 + ky**2) )
         T *= -1
-        
-        """
-        nonlocal_diag = np.convolve(self.Kin[0,:] + 2.*self.Kin[1,:],[1,2,1],'valid')
-        nonlocal_off = np.convolve(self.Kin[0,:] + 2.*self.Kin[1,:],[1,1],'same')[1:self.N-1]
-
-        T.setdiag(nonlocal_diag,0)
-        T.setdiag(-nonlocal_off,1)
-        T.setdiag(-nonlocal_off,-1)
-        T *= (1./(2.*self.step**2))
-        T += ( (gamma1-gamma2)*(kx**2 + ky**2) )
-        T *= -1.
-        """
 
         #np.savetxt('T.dat',T.todense())
-
-
+        
         # S
         
         aux = np.dot(self.der.backward(),self.Kin[2,1:self.N-1])
         aux1 = np.dot(self.der.forward(),self.Kin[2,1:self.N-1])
-        
+          
         S.setdiag(-aux,0)
         S.setdiag(aux[0], -self.N+3)
         S.setdiag(aux,1)
@@ -702,37 +685,30 @@ class ZBHamilton(ZincBlend):
         
         #np.savetxt('S.dat',S.todense())
         #np.savetxt('SC.dat',SC.todense())
-        #sys.exit()
-        
-        """
-        nonlocal_off = (1./(4.*self.step))*np.convolve(self.Kin[2,:],[1,1],'same')[1:self.N-1]
-
-        S.setdiag(-nonlocal_off,1)
-        S.setdiag(nonlocal_off,-1)
-        S*=2.*np.sqrt(3.)*complex(kx,ky)
-        SC.setdiag(-nonlocal_off,1)
-        SC.setdiag(nonlocal_off,-1)
-        SC*=2.*np.sqrt(3.)*complex(kx,-ky)
-        S *= -1
-        SC *= -1
-        """
-
-        #np.savetxt('S.dat',S.todense())
-        #sys.exit()
 
         # R
+        
         R = -np.sqrt(3.)*(gamma2*(kx**2 - ky**2)-2.*complex(0,1.)*gamma3*kx*ky)
         RC = -np.sqrt(3.)*(gamma2*(kx**2 - ky**2)+2.*complex(0,1.)*gamma3*kx*ky)
 
         #np.savetxt('R.dat',R.todense())
-
-        #sys.exit()
 
         IU = complex(0,1.)
         sqr2 = np.sqrt(2.)
         rqs2 = 1./np.sqrt(2.)
         sqr3 = np.sqrt(3.)
 
+        """
+        # I dont know why this doesnt work!!!
+        HT = bmat([[Q         , S              , R             , ZERO     , IU*rqs2*S      ,-IU*sqr2*R     ],
+                  [ SC        , T              , ZERO          , R        ,-IU*rqs2*(Q-T)  , IU*sqr3*rqs2*S],
+                  [ RC        , ZERO           , T             ,-S        ,-IU*sqr3*rqs2*SC,-IU*rqs2*(Q-T) ],
+                  [ ZERO      , RC             ,-SC            , Q        ,-IU*sqr2*RC     ,-IU*rqs2*SC    ],
+                  [-IU*rqs2*SC, IU*rqs2*(Q-T)  , IU*sqr3*rqs2*S, IU*sqr2*R, .5*(Q+T)       , ZERO          ],
+                  [ IU*sqr2*RC,-IU*sqr3*rqs2*SC, IU*rqs2*(Q-T) , IU*rqs2*S, ZERO           , .5*(Q+T)      ]
+                 ])
+        """
+        
         HT += kron(Q          ,[[1,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(S          ,[[0,1,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(R          ,[[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
@@ -781,6 +757,7 @@ class ZBHamilton(ZincBlend):
         HT += kron(diags(self.potHet[0,1:self.N-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,1,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(diags(self.potHet[2,1:self.N-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,1,0],[0,0,0,0,0,0]], format='lil')
         HT += kron(diags(self.potHet[2,1:self.N-1],0) ,[[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,1]], format='lil')
+        
 
         del Q
         del T
@@ -792,15 +769,11 @@ class ZBHamilton(ZincBlend):
         del gamma1
         del gamma2
         del gamma3
-        #del nonlocal_diag
-        #del nonlocal_off
-        """
         del aux
         del aux1
         del auxfw
         del auxbw
         del auxct
-        """
 
       if params['dimen'] == 2:
 
@@ -1171,72 +1144,67 @@ class ZBHamilton(ZincBlend):
     def solve(self,params):
       """
       """
-
-      if params['model'] == 'ZB2x2':
-        va = np.zeros(int(2*params['npoints']+1)*int(params['numcb'])).reshape((int(params['numcb']),int(2*params['npoints']+1)))
-
-        if params['dimen'] == 1:
-          ve = np.zeros(int(2*params['npoints']+1)*int(params['numcb'])*int(params['N']-2)).reshape((int(params['N']-2),int(params['numcb']),int(2*params['npoints']+1)))
-          X = np.zeros(int(params['numcb'])*int(params['N'])).reshape((int(params['N']),int(params['numcb'])))
-          X = rand(int(params['N']),int(params['numcb']))
-
-        if params['dimen'] == 2:
-          ve = np.zeros(int(params['npoints'])*int(params['numcb'])*int(params['N']-2)**2).reshape((int(params['N']-2)**2,int(params['numcb']),int(params['npoints'])))
-          X = np.zeros(int(params['numcb'])*int(params['N']-2)**2).reshape((int(params['N']-2)**2,int(params['numcb'])))
-          X = rand(int(params['N']-2)**2,int(params['numcb']))
-
       
-      if params['model'] == 'ZB6x6':
-        va = np.zeros(int(2*params['npoints']+1)*int(params['numvb'])).reshape((int(params['numvb']),int(2*params['npoints']+1)))
-
-        if params['dimen'] == 1:
-          ve = np.zeros(int(2*params['npoints']+1)*int(params['numvb'])*6*(int(params['N']-2))).reshape((6*(int(params['N']-2)),int(params['numvb']),int(2*params['npoints']+1)))
-          #X = np.zeros(int(params['numvb'])*6*int(params['N']-2)).reshape((6*int(params['N']-2),int(params['numvb'])))
-          #X = rand(6*int(params['N']-2),int(params['numvb']))
-          
-        if params['dimen'] == 2:
-          ve = np.zeros(int(params['npoints'])*int(params['numvb'])*6*int(params['N']-2)**2).reshape((6*int(params['N']-2)**2,int(params['numvb']),int(params['npoints'])))
-          #X = np.zeros(int(params['numvb'])*6*int(params['N']-2)**2, dtype=np.complex128).reshape((6*int(params['N']-2)**2,int(params['numvb'])))
-          #X = rand(6*int(params['N']-2)**2,int(params['numvb']))
-
-      if params['model'] == 'ZB8x8':
+      if params['model'] in ['ZB2x2']:
+        inum = int(params['numcb'])
+        m = 2
+        which = 'SM'
+        
+      if params['model'] in ['ZB6x6']:
+        inum = int(params['numvb'])
+        m = 6
+        which = 'LA'
+        
+      if params['model'] in ['ZB8x8']:
         inum = int(params['numcb'])+int(params['numvb'])
-        inum = 8*int(params['N'])-18
-        va = np.zeros(int(params['npoints'])*inum).reshape((inum,int(params['npoints'])))
-
-        if params['dimen'] == 1:
-          ve = np.zeros(int(params['npoints'])*inum*8*int(params['N']-2)).reshape((8*int(params['N']-2),inum,int(params['npoints'])))
-
+        m = 8
+        which = ''
+              
+      if params['full'] == 1:
+        print 'Carefull with that axe Eugene!'
+        print "u may explode system's memory"
+        inum = (m*int(params['N']-2))**int(params['dimen']) - 2
+      
+      shp0 = int(2*params['npoints']+1)
+      shp1 = int(params['N']-2)
+      
+      # eigenvalues vector
+      va = np.zeros(shp0*inum).reshape((inum,shp0))
+  
+      #eigenvectors vector
+      if params['full'] == 0:
+        ve = np.zeros(shp0*inum*(m*shp1)**int(params['dimen']), dtype=np.complex128).reshape(((m*shp1)**int(params['dimen']),inum,shp0))
+        if params['lobpcg'] == 1:
+          X = np.zeros(inum*(m*shp1)**int(params['dimen']), dtype=np.complex128).reshape(((m*shp1)**int(params['dimen']),inum))
+          X = rand((m*shp1)**int(params['dimen']),inum)
+        
+        
       for i in range(int(2*params['npoints']+1)):
-
+  
         if params['direction'] == 'kx':
           kpoints = np.array([self.kmesh[i],0,0])
         if params['direction'] == 'ky':
           kpoints = np.array([0,self.kmesh[i],0])
         if params['direction'] == 'kz':
           kpoints = np.array([0,0,self.kmesh[i]])
-
+  
         print "Solving k = ",kpoints
-
+  
         HT = self.buildHam(params,kpoints)
-        #HT /= params['Enorm']
-
-        if params['model'] == 'ZB2x2':
-          va[:,i], ve[:,:,i] = eigsh(HT, int(params['numcb']), which='SM')
-          #va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-5,verbosityLevel=1, maxiter=400)
-
-        if params['model'] == 'ZB6x6':
-          va[:,i], ve[:,:,i] = eigsh(HT, int(params['numvb']), which='LA')
-          #va[:,i], ve[:,:,i] = eigvalsh(HT.todense(), b=None, overwrite_a=True, eigvals=(0,int(params['numvb'])), check_finite=False)
-          #va[:,i] = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
-          #va[:,i], ve[:,:,i] = lobpcg(HT,X,largest=True,tol=1e-5,verbosityLevel=1, maxiter=400)
-          #va[:,i] = eigs(HT, int(params['numvb']), ncv = 3*int(params['numvb']), which='SM', tol=1e-5, return_eigenvectors=False, maxiter=400)
-        if params['model'] == 'ZB8x8':
-          #va[:,i], ve[:,:,i] = eigsh(HT, inum)
-          va[:,i] = eigsh(HT, HT.shape[0]-2, which='LA', return_eigenvectors=False)
-
-
-      return self.kmesh, va, ve
+  
+        if params['lobpcg'] == 0:
+          if params['full'] == 0:
+            va[:,i], ve[:,:,i] = eigsh(HT, inum, which=which,return_eigenvectors=True)
+          else:
+            va[:,i] = eigsh(HT, inum, which=which,return_eigenvectors=False)
+        else:
+          va[:,i], ve[:,:,i] = lobpcg(HT,X,M=None,largest=False,tol=1e-6,verbosityLevel=1, maxiter=400)
+  
+  
+      if params['full'] == 0:
+        return self.kmesh, va, ve
+      else:
+        return self.kmesh, va
 
 class derivateCoefs(object):
   
@@ -1308,20 +1276,49 @@ kin = K.buildPot(ioObject.parameters,'kin')
 # Set parameters to Hamiltonian
 ZB = ZBHamilton(ioObject.parameters, pothet, kin)
 
-k, va, ve = ZB.solve(ioObject.parameters)
 
-print va#*ioObject.parameters['Enorm']
+if ioObject.parameters['full'] == 0:
+  k, va, ve = ZB.solve(ioObject.parameters)
+
+  row = len(va[:,0])
+  col = len(va[0,:])
+  
+  rearrangedEvalsVecs = {}
+  
+  for i in range(col):
+      rearrangedEvalsVecs[i] = sorted(zip(va[:,i],ve[:,:,i].T),key=lambda x: x[0].real, reverse=True)
+  
+  for i in range(col):
+    vals, vecs =  zip(*rearrangedEvalsVecs[i])
+    va[:,i] = vals
+    for j in range(row):
+      ve[:,j,i] = vecs[j] 
+  
+  output = np.column_stack((k,va[0,:]))
+  for i in range(1,row):
+    output = np.column_stack((output,va[i,:]))
+  
+  np.savetxt('test.out',output)
+  
+  
+else:
+  k, va = ZB.solve(ioObject.parameters)
+  va = np.sort(va, axis=0)
+  np.savetxt('test.out.gz', va)
 
 
+#print va#*ioObject.parameters['Enorm']
+
+"""
 if ioObject.parameters['model'] == 'ZB2x2':
 
-  va = np.sort(va, axis=0)
+  #va = np.sort(va, axis=0)
 
   fig = plt.figure()
   for i in range(ioObject.parameters['numcb']):
     plt.plot(k, va[i,:])
   plt.show()
-
+"""
 """
   fig = plt.figure()
   ax = fig.gca(projection='3d')
