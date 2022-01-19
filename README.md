@@ -1,6 +1,9 @@
 kpFDM
 =====
 
+# Outdated
+Please refer to https://github.com/tiagocampo/8bandkp-fdm for a more stable version
+
 Disclaim:
  * This software is for my personal usage only. It comes with no warranty at all.
 
